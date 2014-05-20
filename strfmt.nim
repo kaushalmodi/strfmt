@@ -80,9 +80,14 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
     raise newException(EFormat, "String variable must have 's' format type")
 
   # compute alignment
-  var alg = getalign(fmt, '<', runelen(s))
+  let len = if fmt.precision < 0: runelen(s) else: min(runelen(s), fmt.precision)
+  var alg = getalign(fmt, '<', len)
   writefill(o, add, fmt, alg.left)
-  for c in s.items: add(o, c)
+  var pos = 0
+  for i in 0..len-1:
+    let rlen = s.runeLenAt(pos)
+    for j in pos..pos+rlen-1: add(o, s[j])
+    pos += rlen
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: char; fmt: TFormat) =
@@ -402,6 +407,8 @@ when isMainModule:
   doassert "ß".runeat(0).format("ä>6c") == "äääääß"
   doassert "ß".runeat(0).format(".^6c") == "..ß..."
   doassert "ß".runeat(0).format(".^7c") == "...ß..."
+
+  doassert "123456".format("10.3") == "123       "
 
   doassert Inf.format("") == "inf"
   doassert Inf.format("8") == "     inf"
