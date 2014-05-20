@@ -207,7 +207,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
   else: # a usual fractional number
     if not (fmt.typ in {'f', 'F', '%'}): # not fixed point
       exp = log10(y).floor.int
-      if fmt.typ in {'g', 'G'}:
+      if fmt.typ in {'g', 'G', 0.char}:
         if -4 <= exp and exp < prec:
           prec = prec-1-exp
           exp = 0
@@ -262,8 +262,8 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
   if frbeg < frlen:
     add(o, '.')
     for i in (frlen-1).countdown(frbeg): add(o, frstr[i])
-  if fmt.typ in {'e', 'E'} or (fmt.typ in {'g', 'G'} and exp != 0):
-    add(o, if fmt.typ in {'e', 'g'}: 'e' else: 'E')
+  if fmt.typ in {'e', 'E'} or (fmt.typ in {'g', 'G', 0.char} and exp != 0):
+    add(o, if fmt.typ in {'e', 'g', 0.char}: 'e' else: 'E')
     writef(o, add, exp, "0=+3")
   if fmt.typ == '%': add(o, '%')
   writefill(o, add, fmt, alg.right)
@@ -496,6 +496,6 @@ when isMainModule:
   doassert 0.0000123456.format(".3g") == "1.23e-05"
   doassert 0.0000123456.format("0=+10.3g") == "+01.23e-05"
   doassert 0.0000123456.format("0= 10.3g") == " 01.23e-05"
-  doassert((-0.0000123456).format("0=10.3g") == "-01.23e-05")
+  doassert((-0.0000123456).format("0=10.3") == "-01.23e-05")
   doassert 0.3.format("%") == "30.000000%"
   doassert 0.3.format(".2%") == "30.00%"
