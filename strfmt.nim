@@ -214,6 +214,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
     if not (fmt.typ in {'f', 'F', '%'}): # not fixed point
       exp = log10(y).floor.int
       if fmt.typ in {'g', 'G', 0.char}:
+        if prec == 0: prec = 1
         if -4 <= exp and exp < prec:
           prec = prec-1-exp
           exp = 0
