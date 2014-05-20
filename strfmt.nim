@@ -19,6 +19,7 @@ type
     comma: bool
     precision: int
     typ: char     ## the format type: bcdeEfFgGnosxX%
+    arysep: string
 
 const
   DefaultPrec = 6
@@ -31,9 +32,9 @@ proc has(c: TCaptures; i: range[0..maxsubpatterns-1]): bool {.inline.} =
 proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: char): char {.inline.} =
   result = if c.has(i): str[c.bounds(i).first] else: def
 
-proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: string): string {.inline.} =
+proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: string; begoff: int = 0): string {.inline.} =
   let b = c.bounds(i)
-  result = if c.has(i): str.substr(b.first, b.last) else: def
+  result = if c.has(i): str.substr(b.first + begoff, b.last) else: def
 
 proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; begoff: int = 0): int {.inline.} =
   if c.has(i):
@@ -42,7 +43,7 @@ proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; beg
     result = def
 
 proc parse*(fmt: string): TFormat =
-  let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}"
+  let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
   var caps: TCaptures
   if fmt.rawmatch(p, 0, caps) < 0:
     raise newException(EFormat, "Invalid format string")
@@ -55,6 +56,7 @@ proc parse*(fmt: string): TFormat =
   result.comma = caps.has(5)
   result.precision = fmt.get(caps, 6, -1, 1)
   result.typ = fmt.get(caps, 7, 0.char)
+  result.arysep = fmt.get(caps, 8, nil, 1)
 
 proc getalign(fmt: TFormat; defalg: char; slen: int) : tuple[left, right:int] =
   result.left = 0
@@ -272,6 +274,29 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
   if fmt.typ == '%': add(o, '%')
   writefill(o, add, fmt, alg.right)
 
+proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TFormat) =
+  if ary.len == 0: return
+
+  var sep: string
+  var nxtfmt = fmt
+  if fmt.arysep == nil:
+    sep = "\t"
+  elif fmt.arysep.len == 0:
+    sep = ""
+  else:
+    let sepch = fmt.arysep[0]
+    let nxt = fmt.arysep.find(sepch, 1)
+    if nxt >= 1:
+      nxtfmt.arysep = fmt.arysep.substr(nxt)
+      sep = fmt.arysep.substr(1, nxt-1)
+    else:
+      nxtfmt.arysep = ""
+      sep = fmt.arysep.substr(1)
+  writef(o, add, ary[0], nxtfmt)
+  for i in 1..ary.len-1:
+    writef(o, add, sep, "")
+    writef(o, add, ary[i], nxtfmt)
+
 proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; x: T; fmt: semistatic[string]) {.inline.} =
   when isstatic(fmt):
     var f {.global.} = fmt.parse
@@ -487,3 +512,7 @@ when isMainModule:
   doassert((-0.0000123456).format("0=10.3") == "-01.23e-05")
   doassert 0.3.format("%") == "30.000000%"
   doassert 0.3.format(".2%") == "30.00%"
+
+  doassert([[1,2,3], [4,5,6]].format("3a:;\n :, ") == "  1,   2,   3;\n   4,   5,   6")
+  doassert([[1,2,3], [4,5,6]].format("") == "1\t2\t3\t4\t5\t6")
+  doassert([[1.0,2.0,3.0], [4.0,5.0,6.0]].format(".1e") == "1.0e+00\t2.0e+00\t3.0e+00\t4.0e+00\t5.0e+00\t6.0e+00")
