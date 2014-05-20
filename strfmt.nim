@@ -182,44 +182,11 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
       add(o, ('A'.int + c - 10).char)
   writefill(o, add, fmt, alg.right)
 
-proc writeSpecialFloat[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
-  ## Format special floating point numbers nan, 0, -0, inf and -inf
-  var len = 0
-  case x.classify
-  of fcNaN:
-    len = 3
-  of fcInf:
-    len = if fmt.sign != '-': 4 else: 3
-  of fcNegInf:
-    len = 4
-  of fcZero:
-    len = if fmt.sign != '-': 2 else: 1
-  of fcNegZero:
-    len = 2
-  else:
-    discard
-
-  let alg = getalign(fmt, '>', len)
-
-  writefill(o, add, fmt, alg.left, if x.classify in {fcNegInf, fcNegZero}: -1 else: +1)
-  case x.classify
-  of fcNaN:
-    for c in "nan": add(o, c)
-  of fcInf, fcNegInf:
-    for c in "inf": add(o, c)
-  of fcZero, fcNegZero:
-    add(o, '0')
-  else:
-    discard
-  writefill(o, add, fmt, alg.right)
-
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
   if not (fmt.typ in {0.char, 'e', 'E', 'f', 'F', 'g', 'G', 'n', '%'}):
     raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
 
   var len = 0
-  if x.classify in {fcNan, fcInf, fcNegInf, fcZero, fcNegZero}:
-    writeSpecialFloat(o, add, x, fmt); return
 
   if fmt.sign != '-' or x < 0: len.inc
 
