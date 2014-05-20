@@ -255,7 +255,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
       frstr[frlen] = '0'
       frlen.inc
     # possible remove trailing 0
-    if fmt.typ in {'g', 'G'}:
+    if fmt.typ in {'g', 'G', 0.char}:
       while frbeg < frlen and frstr[frbeg] == '0': frbeg.inc
   # update length of string
   len += numlen;
