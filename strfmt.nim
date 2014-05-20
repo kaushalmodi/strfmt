@@ -203,7 +203,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
     numstr[0..2] = ['n', 'a', 'n']
     numlen = 3
   of fcInf, fcNegInf:
-    numstr[0..2] = ['i', 'n', 'f']
+    numstr[0..2] = ['f', 'n', 'i']
     numlen = 3
   of fcZero, fcNegZero:
     numstr[0] = '0'
@@ -255,10 +255,10 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
     # possible remove trailing 0
     if fmt.typ in {'g', 'G'}:
       while frbeg < frlen and frstr[frbeg] == '0': frbeg.inc
-    # update length of string
-    len += numlen;
-    if frbeg < frlen:
-      len += 1 + frlen - frbeg # decimal point and fractional string
+  # update length of string
+  len += numlen;
+  if frbeg < frlen:
+    len += 1 + frlen - frbeg # decimal point and fractional string
 
   let alg = getalign(fmt, '>', len)
   writefill(o, add, fmt, alg.left, if x > 0: 1 else: -1)
@@ -388,6 +388,7 @@ when isMainModule:
   doassert 0x1f5.format("#X") == "0x1F5"
   doassert 0x1f5.format("#o") == "0o765"
   doassert 42.format("#b") == "0b101010"
+  doassert 0.format("+") == "+0"
 
   doassert 'a'.format("c") == "a"
   doassert 'a'.format("6c") == "a     "
@@ -461,35 +462,12 @@ when isMainModule:
   doassert NegInf.format(".^-8") == "..-inf.."
   doassert NegInf.format("0=-8") == "-0000inf"
 
-  doassert 0'f64.format("") == "0"
-  doassert 0'f64.format("8") == "       0"
-  doassert 0'f64.format("<8") == "0       "
-  doassert 0'f64.format(">8") == "       0"
-  doassert 0'f64.format("^8") == "   0    "
-  doassert 0'f64.format("=8") == "       0"
-
-  doassert 0'f64.format(".<8") == "0......."
-  doassert 0'f64.format(".>8") == ".......0"
-  doassert 0'f64.format(".^8") == "...0...."
-  doassert 0'f64.format(".=8") == ".......0"
-  doassert 0'f64.format(".< 8") == " 0......"
-  doassert 0'f64.format(".> 8") == "...... 0"
-  doassert 0'f64.format(".^ 8") == "... 0..."
-  doassert 0'f64.format(".= 8") == " ......0"
-  doassert 0'f64.format(".<+8") == "+0......"
-  doassert 0'f64.format(".>+8") == "......+0"
-  doassert 0'f64.format(".^+8") == "...+0..."
-  doassert 0'f64.format(".=+8") == "+......0"
-  doassert 0'f64.format(".<-8") == "0......."
-  doassert 0'f64.format("_>-8") == "_______0"
-  doassert 0'f64.format(".^-8") == "...0...."
-  doassert 0'f64.format("_=-8") == "_______0"
-
   doassert 123.456.format("f") == "123.456000"
   doassert 123.456.format(".2f") == "123.46"
   doassert 123.456.format("8.2f") == "  123.46"
   doassert 123.456.format("e") == "1.234560e+02"
   doassert 123.456.format("E") == "1.234560E+02"
+  doassert 1.0.format("e") == "1.000000e+00"
   doassert 123.456.format(".2e") == "1.23e+02"
   doassert 123.456.format(".<10.2e") == "1.23e+02.."
   doassert 123.456.format(".2g") == "1.2e+02"
