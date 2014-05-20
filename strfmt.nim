@@ -2,6 +2,7 @@ import macros
 import strutils
 import unicode
 import pegs
+import math
 
 type
   EFormat = object of EBase
@@ -16,6 +17,10 @@ type
     comma: bool
     precision: int
     typ: char     ## the format type: bcdeEfFgGnosxX%
+
+const
+  DefaultPrec = 6
+  round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
 
 proc parse*(fmt: string): TFormat =
   let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}"
@@ -36,6 +41,8 @@ proc parse*(fmt: string): TFormat =
 
   if m[6].len > 0:
     result.precision = m[6].substr(1).parseInt
+  else:
+    result.precision = -1
 
   result.typ = if m[7].len > 0: m[7][0] else: 0.char
 
@@ -52,10 +59,21 @@ proc getalign(fmt: TFormat; defalg: char; slen: int) : tuple[left, right:int] =
       result.right = fmt.width - slen - result.left
     else: discard
 
-proc writefill[Obj](o: var Obj; add: TWrite[Obj]; fmt: TFormat; n: int) =
+proc writefill[Obj](o: var Obj; add: TWrite[Obj]; fmt: TFormat; n: int; sign: int = 0) =
+
+  if fmt.align == '=' and sign != 0:
+    if sign < 0: add(o, '-')
+    elif fmt.sign == '+': add(o, '+')
+    elif fmt.sign == ' ': add(o, ' ')
+
   for i in 1..n:
     for c in fmt.fill.items:
       add(o, c)
+
+  if fmt.align != '=' and sign != 0:
+    if sign < 0: add(o, '-')
+    elif fmt.sign == '+': add(o, '+')
+    elif fmt.sign == ' ': add(o, ' ')
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
   if not (fmt.typ in {'s', 0.char}):
@@ -114,16 +132,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
   var alg = getalign(fmt, '>', len)
 
 
-  if fmt.align != '=':
-    writefill(o, add, fmt, alg.left)
-
-  if i < 0: add(o, '-')
-  elif fmt.sign == '+': add(o, '+')
-  elif fmt.sign == ' ': add(o, ' ')
-
-  if fmt.align == '=':
-    writefill(o, add, fmt, alg.left)
-
+  writefill(o, add, fmt, alg.left, i)
   while ilen > 0:
     ilen.dec
     let c = irev mod base
@@ -134,6 +143,129 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
       add(o, ('a'.int + c - 10).char)
     else:
       add(o, ('A'.int + c - 10).char)
+  writefill(o, add, fmt, alg.right)
+
+proc writeSpecialFloat[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
+  ## Format special floating point numbers nan, 0, -0, inf and -inf
+  var len = 0
+  case x.classify
+  of fcNaN:
+    len = 3
+  of fcInf:
+    len = if fmt.sign != '-': 4 else: 3
+  of fcNegInf:
+    len = 4
+  of fcZero:
+    len = if fmt.sign != '-': 2 else: 1
+  of fcNegZero:
+    len = 2
+  else:
+    discard
+
+  let alg = getalign(fmt, '>', len)
+
+  writefill(o, add, fmt, alg.left, if x.classify in {fcNegInf, fcNegZero}: -1 else: +1)
+  case x.classify
+  of fcNaN:
+    for c in "nan": add(o, c)
+  of fcInf, fcNegInf:
+    for c in "inf": add(o, c)
+  of fcZero, fcNegZero:
+    add(o, '0')
+  else:
+    discard
+  writefill(o, add, fmt, alg.right)
+
+proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
+  if not (fmt.typ in {0.char, 'e', 'E', 'f', 'F', 'g', 'G', 'n', '%'}):
+    raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
+
+  var len = 0
+  if x.classify in {fcNan, fcInf, fcNegInf, fcZero, fcNegZero}:
+    writeSpecialFloat(o, add, x, fmt); return
+
+  if fmt.sign != '-' or x < 0: len.inc
+
+  var prec = if fmt.precision < 0: DefaultPrec else: fmt.precision
+  var y = abs(x)
+  var exp = 0
+  var numstr, frstr: array[0..31, char]
+  var numlen, frbeg, frlen = 0
+
+  if fmt.typ == '%': y *= 100
+
+  case x.classify:
+  of fcNan:
+    numstr[0..2] = ['n', 'a', 'n']
+    numlen = 3
+  of fcInf, fcNegInf:
+    numstr[0..2] = ['i', 'n', 'f']
+    numlen = 3
+  of fcZero, fcNegZero:
+    numstr[0] = '0'
+    numlen = 1
+  else: # a usual fractional number
+    if not (fmt.typ in {'f', 'F', '%'}): # not fixed point
+      exp = log10(y).floor.int
+      if fmt.typ in {'g', 'G'}:
+        if -4 <= exp and exp < prec:
+          prec = prec-1-exp
+          exp = 0
+        else:
+          prec = prec - 1
+          len += 4 # exponent
+      else:
+        len += 4 # exponent
+      # shift y so that 1 <= abs(y) < 2
+      var mult = 1
+      for i in 1..abs(exp): mult *= 10
+      if exp > 0: y /= mult.TReal
+      elif exp < 0: y *= mult.TReal
+    elif fmt.typ == '%':
+      len += 1 # percent sign
+
+    # handle rounding by adding +0.5 * LSB
+    if prec < round_nums.len: y += round_nums[prec]
+
+    # split into integer and fractional part
+    var mult = 1'i64
+    for i in 1..prec: mult *= 10
+    var num = y.int64
+    var fr = ((y - num.TReal) * mult.TReal).int64
+    # build integer part string
+    while num != 0:
+      numstr[numlen] = ('0'.int + (num mod 10)).char
+      numlen.inc
+      num = num div 10
+    if numlen == 0:
+      numstr[0] = '0'
+      numlen.inc
+    # build fractional part string
+    while fr != 0:
+      frstr[frlen] = ('0'.int + (fr mod 10)).char
+      frlen.inc
+      fr = fr div 10
+    while frlen < prec:
+      frstr[frlen] = '0'
+      frlen.inc
+    # possible remove trailing 0
+    if fmt.typ in {'g', 'G'}:
+      while frbeg < frlen and frstr[frbeg] == '0': frbeg.inc
+    # update length of string
+    len += numlen;
+    if frbeg < frlen:
+      len += 1 + frlen - frbeg # decimal point and fractional string
+
+  let alg = getalign(fmt, '>', len)
+  writefill(o, add, fmt, alg.left, if x > 0: 1 else: -1)
+  for i in (numlen-1).countdown(0): add(o, numstr[i])
+  if frbeg < frlen:
+    add(o, '.')
+    for i in (frlen-1).countdown(frbeg): add(o, frstr[i])
+  if fmt.typ in {'e', 'E'} or (fmt.typ in {'g', 'G'} and exp != 0):
+    add(o, if fmt.typ in {'e', 'g'}: 'e' else: 'E')
+    writef(o, add, exp, "0=+3")
+  if fmt.typ == '%': add(o, '%')
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; x: T; fmt: semistatic[string]) {.inline.} =
@@ -270,3 +402,100 @@ when isMainModule:
   doassert "ß".runeat(0).format("ä>6c") == "äääääß"
   doassert "ß".runeat(0).format(".^6c") == "..ß..."
   doassert "ß".runeat(0).format(".^7c") == "...ß..."
+
+  doassert Inf.format("") == "inf"
+  doassert Inf.format("8") == "     inf"
+  doassert Inf.format("<8") == "inf     "
+  doassert Inf.format(">8") == "     inf"
+  doassert Inf.format("^8") == "  inf   "
+  doassert Inf.format("=8") == "     inf"
+
+  doassert Inf.format(".<8") == "inf....."
+  doassert Inf.format(".>8") == ".....inf"
+  doassert Inf.format(".^8") == "..inf..."
+  doassert Inf.format(".=8") == ".....inf"
+  doassert Inf.format(".< 8") == " inf...."
+  doassert Inf.format(".> 8") == ".... inf"
+  doassert Inf.format(".^ 8") == ".. inf.."
+  doassert Inf.format(".= 8") == " ....inf"
+  doassert Inf.format(".<+8") == "+inf...."
+  doassert Inf.format(".>+8") == "....+inf"
+  doassert Inf.format(".^+8") == "..+inf.."
+  doassert Inf.format(".=+8") == "+....inf"
+  doassert Inf.format(".<-8") == "inf....."
+  doassert Inf.format("0>-8") == "00000inf"
+  doassert Inf.format(".^-8") == "..inf..."
+  doassert Inf.format("0=-8") == "00000inf"
+
+  doassert NegInf.format("") == "-inf"
+  doassert NegInf.format("8") == "    -inf"
+  doassert NegInf.format("<8") == "-inf    "
+  doassert NegInf.format(">8") == "    -inf"
+  doassert NegInf.format("^8") == "  -inf  "
+  doassert NegInf.format("=8") == "-    inf"
+
+  doassert NegInf.format(".<8") == "-inf...."
+  doassert NegInf.format(".>8") == "....-inf"
+  doassert NegInf.format(".^8") == "..-inf.."
+  doassert NegInf.format(".=8") == "-....inf"
+  doassert NegInf.format(".< 8") == "-inf...."
+  doassert NegInf.format(".> 8") == "....-inf"
+  doassert NegInf.format(".^ 8") == "..-inf.."
+  doassert NegInf.format(".= 8") == "-....inf"
+  doassert NegInf.format(".<+8") == "-inf...."
+  doassert NegInf.format(".>+8") == "....-inf"
+  doassert NegInf.format(".^+8") == "..-inf.."
+  doassert NegInf.format(".=+8") == "-....inf"
+  doassert NegInf.format(".<-8") == "-inf...."
+  doassert NegInf.format("0>-8") == "0000-inf"
+  doassert NegInf.format(".^-8") == "..-inf.."
+  doassert NegInf.format("0=-8") == "-0000inf"
+
+  doassert 0'f64.format("") == "0"
+  doassert 0'f64.format("8") == "       0"
+  doassert 0'f64.format("<8") == "0       "
+  doassert 0'f64.format(">8") == "       0"
+  doassert 0'f64.format("^8") == "   0    "
+  doassert 0'f64.format("=8") == "       0"
+
+  doassert 0'f64.format(".<8") == "0......."
+  doassert 0'f64.format(".>8") == ".......0"
+  doassert 0'f64.format(".^8") == "...0...."
+  doassert 0'f64.format(".=8") == ".......0"
+  doassert 0'f64.format(".< 8") == " 0......"
+  doassert 0'f64.format(".> 8") == "...... 0"
+  doassert 0'f64.format(".^ 8") == "... 0..."
+  doassert 0'f64.format(".= 8") == " ......0"
+  doassert 0'f64.format(".<+8") == "+0......"
+  doassert 0'f64.format(".>+8") == "......+0"
+  doassert 0'f64.format(".^+8") == "...+0..."
+  doassert 0'f64.format(".=+8") == "+......0"
+  doassert 0'f64.format(".<-8") == "0......."
+  doassert 0'f64.format("_>-8") == "_______0"
+  doassert 0'f64.format(".^-8") == "...0...."
+  doassert 0'f64.format("_=-8") == "_______0"
+
+  doassert 123.456.format("f") == "123.456000"
+  doassert 123.456.format(".2f") == "123.46"
+  doassert 123.456.format("8.2f") == "  123.46"
+  doassert 123.456.format("e") == "1.234560e+02"
+  doassert 123.456.format("E") == "1.234560E+02"
+  doassert 123.456.format(".2e") == "1.23e+02"
+  doassert 123.456.format(".<10.2e") == "1.23e+02.."
+  doassert 123.456.format(".2g") == "1.2e+02"
+  doassert 123.456.format(".2G") == "1.2E+02"
+  doassert 123.456.format(".3g") == "123"
+  doassert 123.456.format(".10g") == "123.456"
+  doassert 0.00123456.format("f") == "0.001235"
+  doassert 0.00123456.format("e") == "1.234560e-03"
+  doassert 0.00123456.format("g") == "0.00123456"
+  doassert 0.00123456.format(".4g") == "0.001235"
+  doassert 0.00123456.format(".1g") == "0.001"
+  doassert 0.000123456.format("g") == "0.000123456"
+  doassert 0.0000123456.format("g") == "1.23456e-05"
+  doassert 0.0000123456.format(".3g") == "1.23e-05"
+  doassert 0.0000123456.format("0=+10.3g") == "+01.23e-05"
+  doassert 0.0000123456.format("0= 10.3g") == " 01.23e-05"
+  doassert((-0.0000123456).format("0=10.3g") == "-01.23e-05")
+  doassert 0.3.format("%") == "30.000000%"
+  doassert 0.3.format(".2%") == "30.00%"
