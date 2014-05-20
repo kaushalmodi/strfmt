@@ -53,6 +53,9 @@ proc parse*(fmt: string): TFormat =
   result.sign  = fmt.get(caps, 2, '-')
   result.baseprefix = caps.has(3)
   result.width = fmt.get(caps, 4, -1)
+  if caps.has(4) and fmt[caps.bounds(4).first] == '0':
+    result.fill = "0"
+    result.align = '='
   result.comma = caps.has(5)
   result.precision = fmt.get(caps, 6, -1, 1)
   result.typ = fmt.get(caps, 7, 0.char)
@@ -387,7 +390,7 @@ when isMainModule:
   doassert 42.format(".<-8") == "42......"
   doassert 42.format("0>-8") == "00000042"
   doassert 42.format(".^-8") == "...42..."
-  doassert 42.format("0=-8") == "00000042"
+  doassert 42.format("-08") == "00000042"
 
   doassert((-42).format(".<8") == "-42.....")
   doassert((-42).format(".>8") == ".....-42")
@@ -405,6 +408,7 @@ when isMainModule:
   doassert((-42).format(".>-8") == ".....-42")
   doassert((-42).format(".^-8") == "..-42...")
   doassert((-42).format("0=-8") == "-0000042")
+  doassert((-42).format("-08") == "-0000042")
 
   doassert 0x1f5.format("x") == "1f5"
   doassert 0x1f5.format("X") == "1F5"
@@ -463,6 +467,7 @@ when isMainModule:
   doassert Inf.format("0>-8") == "00000inf"
   doassert Inf.format(".^-8") == "..inf..."
   doassert Inf.format("0=-8") == "00000inf"
+  doassert Inf.format("-08") == "00000inf"
 
   doassert NegInf.format("") == "-inf"
   doassert NegInf.format("8") == "    -inf"
@@ -487,6 +492,7 @@ when isMainModule:
   doassert NegInf.format("0>-8") == "0000-inf"
   doassert NegInf.format(".^-8") == "..-inf.."
   doassert NegInf.format("0=-8") == "-0000inf"
+  doassert NegInf.format("-08") == "-0000inf"
 
   doassert 123.456.format("f") == "123.456000"
   doassert 123.456.format(".2f") == "123.46"
