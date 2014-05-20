@@ -1,5 +1,6 @@
 import macros
 import strutils
+import parseutils
 import unicode
 import pegs
 import math
@@ -23,31 +24,37 @@ const
   DefaultPrec = 6
   round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
 
+proc has(c: TCaptures; i: range[0..maxsubpatterns-1]): bool {.inline.} =
+  let b = c.bounds(i)
+  result = b.first <= b.last
+
+proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: char): char {.inline.} =
+  result = if c.has(i): str[c.bounds(i).first] else: def
+
+proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: string): string {.inline.} =
+  let b = c.bounds(i)
+  result = if c.has(i): str.substr(b.first, b.last) else: def
+
+proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; begoff: int = 0): int {.inline.} =
+  if c.has(i):
+    discard str.parseInt(result, c.bounds(i).first + begoff)
+  else:
+    result = def
+
 proc parse*(fmt: string): TFormat =
   let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}"
-  var m : array[1..8, string]
-  if not fmt.match(p, m):
+  var caps: TCaptures
+  if fmt.rawmatch(p, 0, caps) < 0:
     raise newException(EFormat, "Invalid format string")
 
-  result.fill  = if m[1].len > 0: m[1] else: " "
-  result.align = if m[2].len > 0: m[2][0] else: 0.char
-  result.sign  = if m[3].len > 0: m[3][0] else: '-'
-
-  result.baseprefix = m[4].len > 0
-
-  if m[5].len > 0:
-    result.width = m[5].parseInt
-  else:
-    result.width = -1
-
-  result.comma = m[6].len == 1
-
-  if m[7].len > 0:
-    result.precision = m[7].substr(1).parseInt
-  else:
-    result.precision = -1
-
-  result.typ = if m[8].len > 0: m[8][0] else: 0.char
+  result.fill = fmt.get(caps, 0, " ")
+  result.align = fmt.get(caps, 1, 0.char)
+  result.sign  = fmt.get(caps, 2, '-')
+  result.baseprefix = caps.has(3)
+  result.width = fmt.get(caps, 4, -1)
+  result.comma = caps.has(5)
+  result.precision = fmt.get(caps, 6, -1, 1)
+  result.typ = fmt.get(caps, 7, 0.char)
 
 proc getalign(fmt: TFormat; defalg: char; slen: int) : tuple[left, right:int] =
   result.left = 0
