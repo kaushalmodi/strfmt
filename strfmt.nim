@@ -223,9 +223,7 @@ when isMainModule:
   doassert((-42).format(".^-8") == "..-42...")
   doassert((-42).format("0=-8") == "-0000042")
 
-  doassert 42.format("") == "42"
-  doassert 42.format("8") == "      42"
-  doassert 42.format("<8") == "42      "
-  doassert 42.format(">8") == "      42"
-  doassert 42.format("^8") == "   42   "
-  doassert 42.format("=8") == "      42"
+  doassert 0x1f5.format("x") == "1f5"
+  doassert 0x1f5.format("X") == "1F5"
+  doassert 0x1f5.format("o") == "765"
+  doassert 42.format("b") == "101010"
