@@ -149,11 +149,14 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
     ilen.inc
     irev = irev * base + x mod base
     x = x div base
+  if ilen == 0:
+    ilen.inc
+    len.inc
 
   var alg = getalign(fmt, '>', len)
 
 
-  writefill(o, add, fmt, alg.left, i)
+  writefill(o, add, fmt, alg.left, if i >= 0: 1 else: -1)
   if fmt.baseprefix:
     case fmt.typ
     of 'b':
