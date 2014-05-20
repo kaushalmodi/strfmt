@@ -13,6 +13,7 @@ type
     fill: string  ## the fill character, UTF8
     align: char   ## the alignment, either <, >, ^, = or \0 (default)
     sign: char    ## the sign, either +, - or SPACE (- default)
+    baseprefix: bool
     width: int
     comma: bool
     precision: int
@@ -23,8 +24,8 @@ const
   round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
 
 proc parse*(fmt: string): TFormat =
-  let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}"
-  var m : array[1..7, string]
+  let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}"
+  var m : array[1..8, string]
   if not fmt.match(p, m):
     raise newException(EFormat, "Invalid format string")
 
@@ -32,19 +33,21 @@ proc parse*(fmt: string): TFormat =
   result.align = if m[2].len > 0: m[2][0] else: 0.char
   result.sign  = if m[3].len > 0: m[3][0] else: '-'
 
-  if m[4].len > 0:
-    result.width = m[4].parseInt
+  result.baseprefix = m[4].len > 0
+
+  if m[5].len > 0:
+    result.width = m[5].parseInt
   else:
     result.width = -1
 
-  result.comma = m[5].len == 1
+  result.comma = m[6].len == 1
 
-  if m[6].len > 0:
-    result.precision = m[6].substr(1).parseInt
+  if m[7].len > 0:
+    result.precision = m[7].substr(1).parseInt
   else:
     result.precision = -1
 
-  result.typ = if m[7].len > 0: m[7][0] else: 0.char
+  result.typ = if m[8].len > 0: m[8][0] else: 0.char
 
 proc getalign(fmt: TFormat; defalg: char; slen: int) : tuple[left, right:int] =
   result.left = 0
@@ -116,13 +119,19 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
     raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
 
   var base : type(i) = 10
+  var len = 0
   case fmt.typ:
-  of 'b': base = 2
-  of 'o': base = 8
-  of 'x', 'X': base = 16
+  of 'b':
+    base = 2
+    if fmt.baseprefix: len += 2
+  of 'o':
+    base = 8
+    if fmt.baseprefix: len += 2
+  of 'x', 'X':
+    base = 16
+    if fmt.baseprefix: len += 2
   else: discard
 
-  var len = 0
   if fmt.sign != '-' or i < 0: len.inc
 
   var x : type(i) = abs(i)
@@ -138,6 +147,19 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
 
 
   writefill(o, add, fmt, alg.left, i)
+  if fmt.baseprefix:
+    case fmt.typ
+    of 'b':
+      add(o, '0')
+      add(o, 'b')
+    of 'o':
+      add(o, '0')
+      add(o, 'o')
+    of 'x', 'X':
+      add(o, '0')
+      add(o, 'x')
+    else:
+      discard
   while ilen > 0:
     ilen.dec
     let c = irev mod base
@@ -385,6 +407,10 @@ when isMainModule:
   doassert 0x1f5.format("X") == "1F5"
   doassert 0x1f5.format("o") == "765"
   doassert 42.format("b") == "101010"
+  doassert 0x1f5.format("#x") == "0x1f5"
+  doassert 0x1f5.format("#X") == "0x1F5"
+  doassert 0x1f5.format("#o") == "0o765"
+  doassert 42.format("#b") == "0b101010"
 
   doassert 'a'.format("c") == "a"
   doassert 'a'.format("6c") == "a     "
