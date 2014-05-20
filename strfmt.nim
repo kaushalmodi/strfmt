@@ -67,6 +67,27 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
   for c in s.items: add(o, c)
   writefill(o, add, fmt, alg.right)
 
+proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: char; fmt: TFormat) =
+  if not (fmt.typ in {'c', 0.char}):
+    raise newException(EFormat, "Character variable must have 'c' format type")
+
+  # compute alignment
+  var alg = getalign(fmt, '<', 1)
+  writefill(o, add, fmt, alg.left)
+  add(o, c)
+  writefill(o, add, fmt, alg.right)
+
+proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: TRune; fmt: TFormat) =
+  if not (fmt.typ in {'c', 0.char}):
+    raise newException(EFormat, "Character variable must have 'c' format type")
+
+  # compute alignment
+  var alg = getalign(fmt, '<', 1)
+  writefill(o, add, fmt, alg.left)
+  let s = c.toUTF8
+  for c in s: add(o, c)
+  writefill(o, add, fmt, alg.right)
+
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
   if not (fmt.typ in {0.char, 'b', 'o', 'x', 'X', 'd', 'n'}):
     raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
@@ -227,3 +248,25 @@ when isMainModule:
   doassert 0x1f5.format("X") == "1F5"
   doassert 0x1f5.format("o") == "765"
   doassert 42.format("b") == "101010"
+
+  doassert 'a'.format("c") == "a"
+  doassert 'a'.format("6c") == "a     "
+  doassert 'a'.format("<6c") == "a     "
+  doassert 'a'.format(">6c") == "     a"
+  doassert 'a'.format("^6c") == "  a   "
+  doassert 'a'.format("^7c") == "   a   "
+  doassert 'a'.format(".<6c") == "a....."
+  doassert 'a'.format("ä>6c") == "äääääa"
+  doassert 'a'.format(".^6c") == "..a..."
+  doassert 'a'.format(".^7c") == "...a..."
+
+  doassert "ß".runeat(0).format("c") == "ß"
+  doassert "ß".runeat(0).format("6c") == "ß     "
+  doassert "ß".runeat(0).format("<6c") == "ß     "
+  doassert "ß".runeat(0).format(">6c") == "     ß"
+  doassert "ß".runeat(0).format("^6c") == "  ß   "
+  doassert "ß".runeat(0).format("^7c") == "   ß   "
+  doassert "ß".runeat(0).format(".<6c") == "ß....."
+  doassert "ß".runeat(0).format("ä>6c") == "äääääß"
+  doassert "ß".runeat(0).format(".^6c") == "..ß..."
+  doassert "ß".runeat(0).format(".^7c") == "...ß..."
