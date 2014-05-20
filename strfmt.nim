@@ -97,7 +97,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
   writefill(o, add, fmt, alg.left)
   var pos = 0
   for i in 0..len-1:
-    let rlen = s.runeLenAt(pos)
+    let rlen = runeLenAt(s, pos)
     for j in pos..pos+rlen-1: add(o, s[j])
     pos += rlen
   writefill(o, add, fmt, alg.right)
