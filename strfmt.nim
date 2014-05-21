@@ -29,6 +29,7 @@ type
     of pkFmt:
       arg: int ## position argument
       fmt: string ## format string
+      recursive: bool ## true if the argument contains recursive formats
 
 const
   DefaultPrec = 6
@@ -333,29 +334,6 @@ proc formatstatic[T](x: T; fmt: static[string]): string {.inline.} =
   var f {.global.} = fmt.parse
   result = format(x, f)
 
-proc nextfmt(s: string; fbeg, fend: var int): bool =
-  var pos = if fend >= 0: fend+2 else: 0
-  while true:
-    fbeg = pos + skipUntil(s, {'{', '}'}, pos)
-    if fbeg >= s.len:
-      fbeg = pos
-      fend = pos
-      return false
-    # {{ or }} count as quoted
-    if fbeg + 1 < s.len and s[fbeg] == s[fbeg+1]:
-      pos = fbeg + 2
-      continue
-    if s[fbeg] == '}':
-      raise newException(EFormat, "Single '}' encountered in format string")
-    fend = fbeg + 1 + skipUntil(s, {'{', '}'}, fbeg + 1)
-    if fend >= s.len:
-      raise newException(EFormat, "Single '{' encountered in format string")
-    if s[fend] == '{':
-      raise newException(EFormat, "Encountered extra '{' before '}' in format string")
-    fbeg = fbeg + 1
-    fend = fend - 1
-    return true
-
 proc unquoted(s: string): string =
   ## Append s to r replacing {{ and }} by single { and }, respectively.
   result = ""
@@ -372,7 +350,7 @@ proc splitfmt(s: string): seq[TPart] =
     let oppos = pos + skipUntil(s, {'{', '}'}, pos)
     # reached the end
     if oppos >= s.len:
-      if pos + 1 < s.len:
+      if pos < s.len:
         result.add(TPart(kind: pkStr, str: s.substr(pos).unquoted))
       return
     # skip double
@@ -386,6 +364,7 @@ proc splitfmt(s: string): seq[TPart] =
       result.add(TPart(kind: pkStr, str: s.substr(pos, oppos-1).unquoted))
     # find matching closing }
     var lvl = 1
+    var recursive = false
     pos = oppos
     while lvl > 0:
       pos.inc
@@ -394,25 +373,67 @@ proc splitfmt(s: string): seq[TPart] =
         raise newException(EFormat, "Single '{' encountered in format string")
       if s[pos] == '{':
         lvl.inc
-        if lvl > 2: raise newException(EFormat, "Too many nested format levels")
+        if lvl == 2:
+          recursive = true
+        if lvl > 2:
+          raise newException(EFormat, "Too many nested format levels")
       else:
         lvl.dec
     let clpos = pos
-    result.add(TPart(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1)))
+    var fmtpart = TPart(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), recursive: recursive)
+    if fmtpart.fmt.len > 0:
+      var arg: int
+      let narg = parseInt(fmtpart.fmt, arg)
+      if narg > 0:
+        fmtpart.arg = arg
+      if narg < fmtpart.fmt.len:
+        if fmtpart.fmt[narg] != ':':
+          raise newException(EFormat, "Expected ':' in argument of format string")
+        fmtpart.fmt = fmtpart.fmt.substr(narg+1)
+    result.add(fmtpart)
     pos = clpos + 1
 
+proc addstr(r: var PNimrodNode; str: PNimrodNode) {.compiletime.} =
+  if r.kind != nnkNilLit:
+    r = infix(r, "&", str)
+  else:
+    r = str
 
-macro fmt*(fmtstr: string; args: varargs[expr]) : expr =
-  result = newStmtList(newLit"")
-  let parts = splitfmt($fmtstr)
-  var arg = 0
+proc rawfmt(fmtstr: string; args: PNimrodNode, firstarg: var int): PNimrodNode {.compiletime.} =
+  let parts = splitfmt(fmtstr)
+  var arg = firstarg
+  var autonumber = firstarg
+  var r: PNimrodNode
   for p in parts:
     case p.kind
     of pkStr:
-      result = infix(result, "&", newLit(p.str))
+      r.addstr(newLit(p.str))
     of pkFmt:
-      result = infix(result, "&", newCall(!"formatstatic", args[arg], newLit(p.fmt)))
-      arg.inc
+      if p.arg >= 0:
+        if autonumber > 0:
+          raise newException(EFormat, "Cannot switch from automatic field numbering to manual field specification")
+        autonumber = -1
+        arg = p.arg
+      else:
+        if autonumber < 0:
+          raise newException(EFormat, "Cannot switch from manual field specification to automatic field numbering")
+        autonumber = +1
+      if p.recursive:
+        let thisarg = arg
+        if autonumber < 0:
+          arg = -1
+        else:
+          arg.inc
+        var rec = rawfmt(p.fmt, args, arg)
+        r.addstr(newCall(!"format", args[thisarg], rec))
+      else:
+        r.addstr(newCall(!"formatstatic", args[arg], newLit(p.fmt)))
+        arg.inc
+  result = r
+
+macro fmt*(fmtstr: string; args: varargs[expr]) : expr =
+  var arg = 0
+  result = rawfmt($fmtstr, args, arg)
 
 when isMainModule:
   # string with 's'
@@ -597,6 +618,8 @@ when isMainModule:
   doassert([[1.0,2.0,3.0], [4.0,5.0,6.0]].format(".1e") == "1.0e+00\t2.0e+00\t3.0e+00\t4.0e+00\t5.0e+00\t6.0e+00")
 
   import strutils
-  doassert("number: {} with width: {5.2f} string: {.^9} array: {a:, } end".fmt(42, 1.45, "hello", [1,2,3]) ==
+  doassert("number: {} with width: {:5.2f} string: {:.^9} array: {:a:, } end".fmt(42, 1.45, "hello", [1,2,3]) ==
              "number: 42 with width:  1.45 string: ..hello.. array: 1, 2, 3 end")
   doassert("{{{}}}".fmt("hallo") == "{hallo}")
+
+  doassert ("[{:{}{}{}}]".fmt(5, '.', '>', 6) == "[.....5]")
