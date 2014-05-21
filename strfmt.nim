@@ -273,7 +273,18 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
     for i in (frlen-1).countdown(frbeg): add(o, frstr[i])
   if fmt.typ in {'e', 'E'} or (fmt.typ in {'g', 'G', 0.char} and exp != 0):
     add(o, if fmt.typ in {'e', 'g', 0.char}: 'e' else: 'E')
-    writef(o, add, exp, "0=+3")
+    if exp >= 0:
+      add(o, '+')
+    else:
+      add(o, '-')
+      exp = -exp
+    if exp < 10:
+      add(o, '0')
+      add(o, ('0'.int + exp).char)
+    else:
+      while exp > 0:
+        add(o, ('0'.int + exp mod 10).char)
+        exp = exp div 10
   if fmt.typ == '%': add(o, '%')
   writefill(o, add, fmt, alg.right)
 
