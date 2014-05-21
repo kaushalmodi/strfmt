@@ -523,5 +523,5 @@ when isMainModule:
   doassert([[1,2,3], [4,5,6]].format("") == "1\t2\t3\t4\t5\t6")
   doassert([[1.0,2.0,3.0], [4.0,5.0,6.0]].format(".1e") == "1.0e+00\t2.0e+00\t3.0e+00\t4.0e+00\t5.0e+00\t6.0e+00")
 
-  doassert("number: {} with width: {5.2f} string: {.^9}".fmt(42, 1.45, "hello") ==
-             "number: 42 with width:  1.45 string: ..hello..")
+  doassert("number: {} with width: {5.2f} string: {.^9} array: {a:, }".fmt(42, 1.45, "hello", [1,2,3]) ==
+             "number: 42 with width:  1.45 string: ..hello.. array: 1, 2, 3")
