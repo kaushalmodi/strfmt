@@ -355,56 +355,24 @@ proc add_unquoted(r: var string; s: string) =
     pos = nxt + 2
 
 macro fmt*(e: expr; args: varargs[expr]) : expr =
-  if e.kind == nnkStrLit:
-    let s = $(e.strVal)
-    result = newStmtList(newLit"")
-    var fbeg, fend = -1
-    var pos, arg = 0
-    while nextfmt(s, fbeg, fend):
-      if fbeg > pos + 1:
-        var mids = ""
-        mids.add_unquoted(substr(s, pos, fbeg-2))
-        result = infix(result, "&", newLit(mids))
-      result = infix(result, "&", newCall("formatstatic".ident,
-                                          args[arg],
-                                          newLit(substr(s, fbeg, fend))))
-      arg += 1
-      pos = fend+2
-    if pos < s.len:
+  let s = $(e.strVal)
+  result = newStmtList(newLit"")
+  var fbeg, fend = -1
+  var pos, arg = 0
+  while nextfmt(s, fbeg, fend):
+    if fbeg > pos + 1:
       var mids = ""
-      mids.add_unquoted(substr(s, pos))
+      mids.add_unquoted(substr(s, pos, fbeg-2))
       result = infix(result, "&", newLit(mids))
-  else:
-    result = newNimnode(nnkStmtListExpr)
-    let
-      s = gensym()
-      r = gensym(nskVar)
-      fbeg = gensym(nskVar)
-      fend = gensym(nskVar)
-      pos = gensym(nskVar)
-
-    result.add(newNimNode(nnkLetSection).add(
-                 newNimNode(nnkIdentDefs).add(s).add(newEmptyNode()).add(e)))
-    result.add(newNimNode(nnkVarSection).add(
-                 newNimNode(nnkIdentDefs).add(r).add(newEmptyNode()).add(newLit"")).add(
-                 newNimNode(nnkIdentDefs).add(fbeg).add(fend).add(newEmptyNode()).add(newLit(-1))).add(
-                 newNimNode(nnkIdentDefs).add(pos).add(newEmptyNode()).add(newLit(0))))
-
-    for i in 0..args.len-1:
-      result.add(newNimNode(nnkIfStmt).add(
-                   newNimNode(nnkElifBranch).add(
-                     infix(newCall(!"nextfmt", s, fbeg, fend), "==", newIdentNode(!"false"))).add(
-                     parseStmt("raise newException(EFormat, \"Invalid format string: too few format specifiers\")"))))
-      result.add(newNimNode(nnkIfStmt).add(newNimNode(nnkElifBranch).add(
-                   infix(fbeg, ">", infix(pos, "+", newLit(1)))).add(newStmtList().add(
-                     newCall(!"add_unquoted", r, newCall(!"substr", s, pos, infix(fbeg, "-", newLit(2))))))))
-      result.add(newCall(!"add", r, newCall(!"format", args[i], newCall(!"substr", s, fbeg, fend))))
-      result.add(newAssignment(pos, infix(fend, "+", newLit(2))))
-    result.add(newNimNode(nnkIfStmt).add(newNimNode(nnkElifBranch).add(
-                 infix(pos, "<", newCall(!"len", s))).add(newStmtList().add(
-                   newCall(!"add_unquoted", r, newCall(!"substr", s, pos))))))
-
-    result.add(r)
+    result = infix(result, "&", newCall("formatstatic".ident,
+                                        args[arg],
+                                        newLit(substr(s, fbeg, fend))))
+    arg += 1
+    pos = fend+2
+  if pos < s.len:
+    var mids = ""
+    mids.add_unquoted(substr(s, pos))
+    result = infix(result, "&", newLit(mids))
 
 when isMainModule:
   # string with 's'
@@ -591,6 +559,4 @@ when isMainModule:
   import strutils
   doassert("number: {} with width: {5.2f} string: {.^9} array: {a:, } end".fmt(42, 1.45, "hello", [1,2,3]) ==
              "number: 42 with width:  1.45 string: ..hello.. array: 1, 2, 3 end")
-  doassert(fmt("{$#};{$#};{$#}" % ["5", ".<10", "5.3"], "x", 14, 23.42) == "x    ;14........; 23.4")
   doassert("{{{}}}".fmt("hallo") == "{hallo}")
-  doassert((discard 42; "{{{}}}").fmt("hello") == "{hello}")
