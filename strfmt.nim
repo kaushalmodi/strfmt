@@ -308,7 +308,7 @@ proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TForma
       sep = fmt.arysep.substr(1)
   writef(o, add, ary[0], nxtfmt)
   for i in 1..ary.len-1:
-    writef(o, add, sep, "")
+    for c in sep: add(o, c)
     writef(o, add, ary[i], nxtfmt)
 
 proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; x: T; fmt: semistatic[string]) {.inline.} =
