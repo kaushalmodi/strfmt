@@ -311,16 +311,9 @@ proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TForma
     for c in sep: add(o, c)
     writef(o, add, ary[i], nxtfmt)
 
-proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; x: T; fmt: semistatic[string]) {.inline.} =
-  when isstatic(fmt):
-    var f {.global.} = fmt.parse
-    writef(o, add, x, f)
-  else:
-    writef(o, add, x, fmt.parse)
-
 proc format*[T](x: T; fmt: TFormat): string =
   result = ""
-  writef(result, proc (o: var string; c: char) = o.add(c), x, fmt)
+  writef(result, proc (o: var string; c: char) = add(o, c), x, fmt)
 
 proc format*[T](x: T; fmt: string): string =
   result = format(x, fmt.parse)
