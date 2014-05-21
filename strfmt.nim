@@ -1,5 +1,4 @@
 import macros
-import strutils
 import parseutils
 import unicode
 import pegs
@@ -289,7 +288,7 @@ proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TForma
     sep = ""
   else:
     let sepch = fmt.arysep[0]
-    let nxt = fmt.arysep.find(sepch, 1)
+    let nxt = 1 + skipUntil(fmt.arysep, sepch, 1)
     if nxt >= 1:
       nxtfmt.arysep = fmt.arysep.substr(nxt)
       sep = fmt.arysep.substr(1, nxt-1)
@@ -324,12 +323,12 @@ macro fmt*(s: string; args: varargs[expr]) : expr =
   result = newStmtList(newLit"")
   var pos = 0
   var arg = 0
+  let l = ($s).len
   while true:
-    let opbeg = find($s, "{", pos)
-    if opbeg < 0: break
-
-    let opend = find($s, "}", opbeg+1)
-    if opend < 0: quit "Invalid format string: unclosed {"
+    let opbeg = pos + skipUntil($s, '{', pos)
+    if opbeg >= l: break
+    let opend = opbeg+1 + skipUntil($s, '}', opbeg+1)
+    if opend >= l: quit "Invalid format string: unclosed {"
     if opbeg > pos:
       result = infix(result, "&", newLit(substr($s, pos, opbeg-1)))
     result = infix(result, "&", newCall("format".ident,
@@ -342,7 +341,7 @@ macro fmt*(s: string; args: varargs[expr]) : expr =
 
 
 
-when isMainModule:    
+when isMainModule:
   # string with 's'
   doassert "hello".format("s") == "hello"
   doassert "hello".format("10s") == "hello     "
@@ -523,3 +522,6 @@ when isMainModule:
   doassert([[1,2,3], [4,5,6]].format("3a:;\n :, ") == "  1,   2,   3;\n   4,   5,   6")
   doassert([[1,2,3], [4,5,6]].format("") == "1\t2\t3\t4\t5\t6")
   doassert([[1.0,2.0,3.0], [4.0,5.0,6.0]].format(".1e") == "1.0e+00\t2.0e+00\t3.0e+00\t4.0e+00\t5.0e+00\t6.0e+00")
+
+  doassert("number: {} with width: {5.2f} string: {.^9}".fmt(42, 1.45, "hello") ==
+             "number: 42 with width:  1.45 string: ..hello..")
