@@ -215,7 +215,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
 
   if fmt.typ == '%': y *= 100
 
-  case x.classify:
+  case classify(x):
   of fcNan:
     numstr[0..2] = ['n', 'a', 'n']
     numlen = 3
@@ -227,7 +227,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
     numlen = 1
   else: # a usual fractional number
     if not (fmt.typ in {'f', 'F', '%'}): # not fixed point
-      exp = log10(y).floor.int
+      exp = int(floor(log10(y)))
       if fmt.typ in {'g', 'G', 0.char}:
         if prec == 0: prec = 1
         if -4 <= exp and exp < prec:
@@ -332,7 +332,7 @@ proc format*[T](x: T; fmt: string): string =
   result = format(x, fmt.parse)
 
 # semistatic does not work, yet, so we use this workaround
-proc formatstatic[T](x: T; fmt: static[string]): string {.inline.} =
+proc formatstatic*[T](x: T; fmt: static[string]): string {.inline.} =
   var f {.global.} = fmt.parse
   result = format(x, f)
 
@@ -442,9 +442,9 @@ proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.comp
         else:
           arg.inc
         var rec = rawfmt(p.fmt, args, arg)
-        r.addstr(newCall(!"format", argexpr, rec))
+        r.addstr(newCall(bindsym"format", argexpr, rec))
       else:
-        r.addstr(newCall(!"formatstatic", argexpr, newLit(p.fmt)))
+        r.addstr(newCall(bindsym"formatstatic", argexpr, newLit(p.fmt)))
         arg.inc
   result = r
 
