@@ -342,11 +342,11 @@ macro fmt*(e: expr; args: varargs[expr]) : expr =
   else:
     result = newNimnode(nnkStmtListExpr)
     let
-      s = newIdentNode(!"__s")
-      r = newIdentNode(!"__r")
-      opbeg = newIdentNode(!"__opbeg")
-      opend = newIdentNode(!"__opend")
-      pos = newIdentNode(!"__pos")
+      s = gensym()
+      r = gensym(nskVar)
+      opbeg = gensym(nskVar)
+      opend = gensym(nskVar)
+      pos = gensym(nskVar)
 
     result.add(newNimNode(nnkLetSection).add(
                  newNimNode(nnkIdentDefs).add(s).add(newEmptyNode()).add(e)))
