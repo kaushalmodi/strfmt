@@ -54,8 +54,19 @@ proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; beg
   else:
     result = def
 
-proc parse*(fmt: string): TFormat =
-  let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
+proc parse*(fmt: string): TFormat {.nosideeffect.} =
+  # let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
+  let p =
+    sequence(capture(?sequence(anyRune(), &charSet({'<', '>', '=', '^'}))),
+             capture(?charSet({'<', '>', '=', '^'})),
+             capture(?charSet({'-', '+', ' '})),
+             capture(?charSet({'#'})),
+             capture(?(+digits())),
+             capture(?charSet({','})),
+             capture(?sequence(charSet({'.'}), +digits())),
+             capture(?charSet({'b', 'c', 'd', 'e', 'E', 'f', 'F', 'g', 'G', 'n', 'o', 's', 'x', 'X', '%'})),
+             capture(?sequence(charSet({'a'}), *pegs.any())))
+
   var caps: TCaptures
   if fmt.rawmatch(p, 0, caps) < 0:
     raise newException(EFormat, "Invalid format string")
@@ -345,7 +356,7 @@ proc unquoted(s: string): string =
     result.add(s.substr(pos, nxt))
     pos = nxt + 2
 
-proc splitfmt(s: string): seq[TPart] =
+proc splitfmt(s: string): seq[TPart] {.nosideeffect.} =
   let subpeg = sequence(capture(*digits()),
                           capture(?sequence(charSet({'.'}), identStartChars(), *identChars())),
                           capture(?sequence(charSet({'['}), +digits(), charSet({']'}))),
@@ -365,7 +376,7 @@ proc splitfmt(s: string): seq[TPart] =
       pos = oppos + 2
       continue
     if s[oppos] == '}':
-      quit "Single '}' encountered in format string"
+      raise newException(EFormat, "Single '}' encountered in format string")
     if oppos > pos:
       result.add(TPart(kind: pkStr, str: s.substr(pos, oppos-1).unquoted))
     # find matching closing }
@@ -376,13 +387,13 @@ proc splitfmt(s: string): seq[TPart] =
       pos.inc
       pos = pos + skipUntil(s, {'{', '}'}, pos)
       if pos >= s.len:
-        quit "Single '{' encountered in format string"
+        raise newException(EFormat, "Single '{' encountered in format string")
       if s[pos] == '{':
         lvl.inc
         if lvl == 2:
           recursive = true
         if lvl > 2:
-          quit "Too many nested format levels"
+          raise newException(EFormat, "Too many nested format levels")
       else:
         lvl.dec
     let clpos = pos
@@ -390,7 +401,7 @@ proc splitfmt(s: string): seq[TPart] =
     if fmtpart.fmt.len > 0:
       var m: array[0..3, string]
       if not fmtpart.fmt.match(subpeg, m):
-        quit "invalid format string"
+        raise newException(EFormat, "invalid format string")
 
       if m[1] != nil and m[1].len > 0:
         fmtpart.field = m[1].substr(1)
@@ -412,6 +423,15 @@ proc addstr(r: var PNimrodNode; str: PNimrodNode) {.compiletime.} =
     r = infix(r, "&", str)
   else:
     r = str
+
+proc literal(s: string): PNimrodNode {.compiletime.} =
+  result = if s == nil: newNilLit() else: newLit(s)
+
+proc literal(b: bool): PNimrodNode {.compiletime.} =
+  result = if b: "true".ident else: "false".ident
+
+proc literal[T](x: T): PNimrodNode {.compiletime.} =
+  result = newLit(x)
 
 proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.compiletime.} =
   let parts = splitfmt(fmtstr)
@@ -444,7 +464,11 @@ proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.comp
         var rec = rawfmt(p.fmt, args, arg)
         r.addstr(newCall(bindsym"format", argexpr, rec))
       else:
-        r.addstr(newCall(bindsym"formatstatic", argexpr, newLit(p.fmt)))
+        let f = p.fmt.parse
+        let fmtlit = newNimNode(nnkPar)
+        for field, val in f.fieldPairs:
+          fmtlit.add(newNimNode(nnkExprColonExpr).add(field.ident, literal(val)))
+        r.addstr(newCall(bindsym"format", argexpr, fmtlit))
         arg.inc
   result = r
 
