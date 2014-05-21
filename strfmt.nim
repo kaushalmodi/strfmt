@@ -20,6 +20,16 @@ type
     typ: char     ## the format type: bcdeEfFgGnosxX%
     arysep: string
 
+  TPartKind = enum pkStr, pkFmt
+
+  TPart = object
+    case kind: TPartKind
+    of pkStr:
+      str: string
+    of pkFmt:
+      arg: int ## position argument
+      fmt: string ## format string
+
 const
   DefaultPrec = 6
   round_nums* = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
@@ -346,33 +356,63 @@ proc nextfmt(s: string; fbeg, fend: var int): bool =
     fend = fend - 1
     return true
 
-proc add_unquoted(r: var string; s: string) =
+proc unquoted(s: string): string =
   ## Append s to r replacing {{ and }} by single { and }, respectively.
+  result = ""
   var pos = 0
   while pos < s.len:
     let nxt = pos + skipUntil(s, {'{', '}'})
-    r.add(s.substr(pos, nxt))
+    result.add(s.substr(pos, nxt))
     pos = nxt + 2
 
-macro fmt*(e: expr; args: varargs[expr]) : expr =
-  let s = $(e.strVal)
+proc splitfmt(s: string): seq[TPart] =
+  result = @[]
+  var pos = 0
+  while true:
+    let oppos = pos + skipUntil(s, {'{', '}'}, pos)
+    # reached the end
+    if oppos >= s.len:
+      if pos + 1 < s.len:
+        result.add(TPart(kind: pkStr, str: s.substr(pos).unquoted))
+      return
+    # skip double
+    if oppos + 1 < s.len and s[oppos] == s[oppos+1]:
+      result.add(TPart(kind: pkStr, str: s.substr(pos, oppos)))
+      pos = oppos + 2
+      continue
+    if s[oppos] == '}':
+      raise newException(EFormat, "Single '}' encountered in format string")
+    if oppos > pos:
+      result.add(TPart(kind: pkStr, str: s.substr(pos, oppos-1).unquoted))
+    # find matching closing }
+    var lvl = 1
+    pos = oppos
+    while lvl > 0:
+      pos.inc
+      pos = pos + skipUntil(s, {'{', '}'}, pos)
+      if pos >= s.len:
+        raise newException(EFormat, "Single '{' encountered in format string")
+      if s[pos] == '{':
+        lvl.inc
+        if lvl > 2: raise newException(EFormat, "Too many nested format levels")
+      else:
+        lvl.dec
+    let clpos = pos
+    result.add(TPart(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1)))
+    pos = clpos + 1
+
+
+macro fmt*(fmtstr: string; args: varargs[expr]) : expr =
   result = newStmtList(newLit"")
-  var fbeg, fend = -1
-  var pos, arg = 0
-  while nextfmt(s, fbeg, fend):
-    if fbeg > pos + 1:
-      var mids = ""
-      mids.add_unquoted(substr(s, pos, fbeg-2))
-      result = infix(result, "&", newLit(mids))
-    result = infix(result, "&", newCall("formatstatic".ident,
-                                        args[arg],
-                                        newLit(substr(s, fbeg, fend))))
-    arg += 1
-    pos = fend+2
-  if pos < s.len:
-    var mids = ""
-    mids.add_unquoted(substr(s, pos))
-    result = infix(result, "&", newLit(mids))
+  let parts = splitfmt($fmtstr)
+  var arg = 0
+  for p in parts:
+    case p.kind
+    of pkStr:
+      result = infix(result, "&", newLit(p.str))
+    of pkFmt:
+      result = infix(result, "&", newCall(!"formatstatic", args[arg], newLit(p.fmt)))
+      arg.inc
 
 when isMainModule:
   # string with 's'
