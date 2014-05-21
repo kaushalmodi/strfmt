@@ -359,7 +359,7 @@ proc splitfmt(s: string): seq[TPart] =
       pos = oppos + 2
       continue
     if s[oppos] == '}':
-      raise newException(EFormat, "Single '}' encountered in format string")
+      quit "Single '}' encountered in format string"
     if oppos > pos:
       result.add(TPart(kind: pkStr, str: s.substr(pos, oppos-1).unquoted))
     # find matching closing }
@@ -370,13 +370,13 @@ proc splitfmt(s: string): seq[TPart] =
       pos.inc
       pos = pos + skipUntil(s, {'{', '}'}, pos)
       if pos >= s.len:
-        raise newException(EFormat, "Single '{' encountered in format string")
+        quit "Single '{' encountered in format string"
       if s[pos] == '{':
         lvl.inc
         if lvl == 2:
           recursive = true
         if lvl > 2:
-          raise newException(EFormat, "Too many nested format levels")
+          quit "Too many nested format levels"
       else:
         lvl.dec
     let clpos = pos
@@ -388,8 +388,10 @@ proc splitfmt(s: string): seq[TPart] =
         fmtpart.arg = arg
       if narg < fmtpart.fmt.len:
         if fmtpart.fmt[narg] != ':':
-          raise newException(EFormat, "Expected ':' in argument of format string")
+          quit "Expected ':' in argument of format string"
         fmtpart.fmt = fmtpart.fmt.substr(narg+1)
+      else:
+        fmtpart.fmt = ""
     result.add(fmtpart)
     pos = clpos + 1
 
@@ -399,10 +401,9 @@ proc addstr(r: var PNimrodNode; str: PNimrodNode) {.compiletime.} =
   else:
     r = str
 
-proc rawfmt(fmtstr: string; args: PNimrodNode, firstarg: var int): PNimrodNode {.compiletime.} =
+proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.compiletime.} =
   let parts = splitfmt(fmtstr)
-  var arg = firstarg
-  var autonumber = firstarg
+  var autonumber = arg
   var r: PNimrodNode
   for p in parts:
     case p.kind
@@ -411,12 +412,12 @@ proc rawfmt(fmtstr: string; args: PNimrodNode, firstarg: var int): PNimrodNode {
     of pkFmt:
       if p.arg >= 0:
         if autonumber > 0:
-          raise newException(EFormat, "Cannot switch from automatic field numbering to manual field specification")
+          quit "Cannot switch from automatic field numbering to manual field specification"
         autonumber = -1
         arg = p.arg
       else:
         if autonumber < 0:
-          raise newException(EFormat, "Cannot switch from manual field specification to automatic field numbering")
+          quit "Cannot switch from manual field specification to automatic field numbering"
         autonumber = +1
       if p.recursive:
         let thisarg = arg
@@ -622,4 +623,9 @@ when isMainModule:
              "number: 42 with width:  1.45 string: ..hello.. array: 1, 2, 3 end")
   doassert("{{{}}}".fmt("hallo") == "{hallo}")
 
-  doassert ("[{:{}{}{}}]".fmt(5, '.', '>', 6) == "[.....5]")
+  doassert ("[{:{}{}{}}]{{{:{}{}{}}}}".fmt(5, '.', '>', 6, "abc", "-", "^", 10) == "[.....5]{---abc----}")
+  doassert ("[{0:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....5]")
+  doassert ("[{3:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....6]")
+  doassert ("[{3:{2}{2}{3}}]".fmt(5, '.', '>', 6) == "[>>>>>6]")
+
+  doassert ("[{0:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....5]")
