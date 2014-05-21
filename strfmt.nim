@@ -317,33 +317,63 @@ proc format*[T](x: T; fmt: TFormat): string =
 
 proc format*[T](x: T; fmt: string): string =
   result = format(x, fmt.parse)
-  # when isstatic(fmt):
-  #   var f {.global.} = fmt.parse
-  #   result = format(x, f)
-  # else:
-  #   result = format(x, fmt.parse)
 
-macro fmt*(s: string; args: varargs[expr]) : expr =
-  result = newStmtList(newLit"")
-  var pos = 0
-  var arg = 0
-  let l = ($s).len
-  while true:
-    let opbeg = pos + skipUntil($s, '{', pos)
-    if opbeg >= l: break
-    let opend = opbeg+1 + skipUntil($s, '}', opbeg+1)
-    if opend >= l: quit "Invalid format string: unclosed {"
-    if opbeg > pos:
-      result = infix(result, "&", newLit(substr($s, pos, opbeg-1)))
-    result = infix(result, "&", newCall("format".ident,
-                                        args[arg],
-                                        newLit(substr($s, opbeg+1, opend-1))))
-    arg += 1
-    pos = opend+1
-  if pos < len($s):
-    result = infix(result, "&", newLit(substr($s, pos)))
+macro fmt*(e: expr; args: varargs[expr]) : expr =
+  if e.kind == nnkStrLit:
+    let s = e.strVal
+    result = newStmtList(newLit"")
+    var pos = 0
+    var arg = 0
+    let slen = ($s).len
+    while true:
+      let opbeg = pos + skipUntil($s, '{', pos)
+      if opbeg >= slen: break
+      let opend = opbeg+1 + skipUntil($s, '}', opbeg+1)
+      if opend >= slen: quit "Invalid format string: unclosed {"
+      if opbeg > pos:
+        result = infix(result, "&", newLit(substr($s, pos, opbeg-1)))
+      result = infix(result, "&", newCall("format".ident,
+                                          args[arg],
+                                          newLit(substr($s, opbeg+1, opend-1))))
+      arg += 1
+      pos = opend+1
+    if pos < slen:
+      result = infix(result, "&", newLit(substr($s, pos)))
+  else:
+    result = newNimnode(nnkStmtListExpr)
+    let
+      s = newIdentNode(!"__s")
+      r = newIdentNode(!"__r")
+      opbeg = newIdentNode(!"__opbeg")
+      opend = newIdentNode(!"__opend")
+      pos = newIdentNode(!"__pos")
 
+    result.add(newNimNode(nnkLetSection).add(
+                 newNimNode(nnkIdentDefs).add(s).add(newEmptyNode()).add(e)))
+    result.add(newNimNode(nnkVarSection).add(
+                 newNimNode(nnkIdentDefs).add(r).add(newEmptyNode()).add(newLit"")).add(
+                 newNimNode(nnkIdentDefs).add(opbeg).add(opend).add(pos).add(newEmptyNode()).add(newLit(0))))
 
+    for i in 0..args.len-1:
+      result.add(newAssignment(opbeg, infix(pos, "+", newCall(!"skipUntil", s, newLit('{'), pos))))
+      result.add(newNimNode(nnkIfStmt).add(newNimNode(nnkElifBranch).add(
+                   infix(opbeg, ">=", newCall(!"len", s))).add(parseStmt(
+                     "raise newException(EFormat, \"Invalid format string: too few format specifiers\")"))))
+      result.add(newAssignment(opend, infix(opbeg, "+", newCall(!"skipUntil", s, newLit('}'), opbeg))))
+      result.add(newNimNode(nnkIfStmt).add(newNimNode(nnkElifBranch).add(
+                   infix(opend, ">=", newCall(!"len", s))).add(parseStmt(
+                     "raise newException(EFormat, \"Invalid format string: unclosed {\")"))))
+      result.add(newNimNode(nnkIfStmt).add(newNimNode(nnkElifBranch).add(
+                   infix(opbeg, ">", pos)).add(newStmtList().add(
+                     newCall(!"add", r, newCall(!"substr", s, pos, infix(opbeg, "-", newLit(1))))))))
+      result.add(newCall(!"add", r,
+                   newCall(!"format", args[i], newCall(!"substr", s, infix(opbeg, "+", newLit(1)), infix(opend, "-", newLit(1))))))
+      result.add(newAssignment(pos, infix(opend, "+", newLit(1))))
+    result.add(newNimNode(nnkIfStmt).add(newNimNode(nnkElifBranch).add(
+                 infix(pos, ">", newCall(!"len", s))).add(newStmtList().add(
+                   newCall(!"add", r, newCall(!"substr", s, pos))))))
+
+    result.add(r)
 
 when isMainModule:
   # string with 's'
@@ -529,3 +559,6 @@ when isMainModule:
 
   doassert("number: {} with width: {5.2f} string: {.^9} array: {a:, }".fmt(42, 1.45, "hello", [1,2,3]) ==
              "number: 42 with width:  1.45 string: ..hello.. array: 1, 2, 3")
+
+  import strutils
+  doassert(fmt("{$#};{$#};{$#}" % ["5", ".<10", "5.3"], "x", 14, 23.42) == "x    ;14........; 23.4")
