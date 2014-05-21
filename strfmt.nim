@@ -29,6 +29,8 @@ type
     of pkFmt:
       arg: int ## position argument
       fmt: string ## format string
+      field: string ## field of argument to be accessed
+      index: int ## array index of argument to be accessed
       recursive: bool ## true if the argument contains recursive formats
 
 const
@@ -344,7 +346,10 @@ proc unquoted(s: string): string =
     pos = nxt + 2
 
 proc splitfmt(s: string): seq[TPart] =
-  let subpeg = sequence(capture(*digits()), ?capture(sequence(charSet({':'}), *pegs.any())))
+  let subpeg = sequence(capture(*digits()),
+                          capture(?sequence(charSet({'.'}), identStartChars(), *identChars())),
+                          capture(?sequence(charSet({'['}), +digits(), charSet({']'}))),
+                          capture(?sequence(charSet({':'}), *pegs.any())))
   result = @[]
   var pos = 0
   while true:
@@ -381,19 +386,24 @@ proc splitfmt(s: string): seq[TPart] =
       else:
         lvl.dec
     let clpos = pos
-    var fmtpart = TPart(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), recursive: recursive)
+    var fmtpart = TPart(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), field: nil, index: int.high, recursive: recursive)
     if fmtpart.fmt.len > 0:
-      var m: array[0..1, string]
+      var m: array[0..3, string]
       if not fmtpart.fmt.match(subpeg, m):
         quit "invalid format string"
 
+      if m[1] != nil and m[1].len > 0:
+        fmtpart.field = m[1].substr(1)
+      if m[2] != nil and m[2].len > 0:
+        discard parseInt(m[2].substr(1, m[2].len-2), fmtpart.index)
+
       if m[0].len > 0: discard parseInt(m[0], fmtpart.arg)
-      if m[1] == nil or m[1].len == 0:
+      if m[3] == nil or m[3].len == 0:
         fmtpart.fmt = ""
-      elif m[1][0] == ':':
-        fmtpart.fmt = m[1].substr(1)
+      elif m[3][0] == ':':
+        fmtpart.fmt = m[3].substr(1)
       else:
-        fmtpart.fmt = m[1]
+        fmtpart.fmt = m[3]
     result.add(fmtpart)
     pos = clpos + 1
 
@@ -421,16 +431,20 @@ proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.comp
         if autonumber < 0:
           quit "Cannot switch from manual field specification to automatic field numbering"
         autonumber = +1
+      var argexpr = args[arg]
+      if p.field != nil and p.field.len > 0:
+        argexpr = newDotExpr(argexpr, p.field.ident)
+      if p.index < int.high:
+        argexpr = newNimNode(nnkBracketExpr).add(argexpr, newLit(p.index))
       if p.recursive:
-        let thisarg = arg
         if autonumber < 0:
           arg = -1
         else:
           arg.inc
         var rec = rawfmt(p.fmt, args, arg)
-        r.addstr(newCall(!"format", args[thisarg], rec))
+        r.addstr(newCall(!"format", argexpr, rec))
       else:
-        r.addstr(newCall(!"formatstatic", args[arg], newLit(p.fmt)))
+        r.addstr(newCall(!"formatstatic", argexpr, newLit(p.fmt)))
         arg.inc
   result = r
 
@@ -631,3 +645,6 @@ when isMainModule:
   doassert ("[{3:{2}{2}{3}}]".fmt(5, '.', '>', 6) == "[>>>>>6]")
 
   doassert ("[{0:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....5]")
+
+  doassert "{0.name:.^10} {0.age}".fmt((name:"john", age:27)) == "...john... 27"
+  doassert "{0[1]:.^10} {0[0]}".fmt(["27", "john"]) == "...john... 27"
