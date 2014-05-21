@@ -344,6 +344,7 @@ proc unquoted(s: string): string =
     pos = nxt + 2
 
 proc splitfmt(s: string): seq[TPart] =
+  let subpeg = sequence(capture(*digits()), ?capture(sequence(charSet({':'}), *pegs.any())))
   result = @[]
   var pos = 0
   while true:
@@ -382,16 +383,17 @@ proc splitfmt(s: string): seq[TPart] =
     let clpos = pos
     var fmtpart = TPart(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), recursive: recursive)
     if fmtpart.fmt.len > 0:
-      var arg: int
-      let narg = parseInt(fmtpart.fmt, arg)
-      if narg > 0:
-        fmtpart.arg = arg
-      if narg < fmtpart.fmt.len:
-        if fmtpart.fmt[narg] != ':':
-          quit "Expected ':' in argument of format string"
-        fmtpart.fmt = fmtpart.fmt.substr(narg+1)
-      else:
+      var m: array[0..1, string]
+      if not fmtpart.fmt.match(subpeg, m):
+        quit "invalid format string"
+
+      if m[0].len > 0: discard parseInt(m[0], fmtpart.arg)
+      if m[1] == nil or m[1].len == 0:
         fmtpart.fmt = ""
+      elif m[1][0] == ':':
+        fmtpart.fmt = m[1].substr(1)
+      else:
+        fmtpart.fmt = m[1]
     result.add(fmtpart)
     pos = clpos + 1
 
