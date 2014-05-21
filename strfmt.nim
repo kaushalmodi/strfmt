@@ -318,6 +318,11 @@ proc format*[T](x: T; fmt: TFormat): string =
 proc format*[T](x: T; fmt: string): string =
   result = format(x, fmt.parse)
 
+# semistatic does not work, yet, so we use this workaround
+proc formatstatic[T](x: T; fmt: static[string]): string {.inline.} =
+  var f {.global.} = fmt.parse
+  result = format(x, f)
+
 macro fmt*(e: expr; args: varargs[expr]) : expr =
   if e.kind == nnkStrLit:
     let s = e.strVal
@@ -332,7 +337,7 @@ macro fmt*(e: expr; args: varargs[expr]) : expr =
       if opend >= slen: quit "Invalid format string: unclosed {"
       if opbeg > pos:
         result = infix(result, "&", newLit(substr($s, pos, opbeg-1)))
-      result = infix(result, "&", newCall("format".ident,
+      result = infix(result, "&", newCall("formatstatic".ident,
                                           args[arg],
                                           newLit(substr($s, opbeg+1, opend-1))))
       arg += 1
