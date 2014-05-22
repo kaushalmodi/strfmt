@@ -52,24 +52,24 @@ const
   DefaultPrec = 6
   round_nums* = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
 
-proc has(c: TCaptures; i: range[0..maxsubpatterns-1]): bool {.inline.} =
+proc has(c: TCaptures; i: range[0..maxsubpatterns-1]): bool {.nosideeffect, inline.} =
   let b = c.bounds(i)
   result = b.first <= b.last
 
-proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: char): char {.inline.} =
+proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: char): char {.nosideeffect, inline.} =
   result = if c.has(i): str[c.bounds(i).first] else: def
 
-proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: string; begoff: int = 0): string {.inline.} =
+proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: string; begoff: int = 0): string {.nosideeffect, inline.} =
   let b = c.bounds(i)
   result = if c.has(i): str.substr(b.first + begoff, b.last) else: def
 
-proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; begoff: int = 0): int {.inline.} =
+proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; begoff: int = 0): int {.nosideeffect, inline.} =
   if c.has(i):
     discard str.parseInt(result, c.bounds(i).first + begoff)
   else:
     result = def
 
-proc parse*(fmt: string): TFormat =
+proc parse*(fmt: string): TFormat {.nosideeffect.} =
   let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
   var caps: TCaptures
   if fmt.rawmatch(p, 0, caps) < 0:
@@ -88,7 +88,7 @@ proc parse*(fmt: string): TFormat =
   result.typ = fmt.get(caps, 7, 0.char)
   result.arysep = fmt.get(caps, 8, nil, 1)
 
-proc getalign(fmt: TFormat; defalg: char; slen: int) : tuple[left, right:int] =
+proc getalign(fmt: TFormat; defalg: char; slen: int) : tuple[left, right:int] {.nosideeffect.} =
   result.left = 0
   result.right = 0
   if (fmt.width >= 0) and (slen < fmt.width):
@@ -360,7 +360,7 @@ proc unquoted(s: string): string =
     result.add(s.substr(pos, nxt))
     pos = nxt + 2
 
-proc splitfmt(s: string): seq[TPart] =
+proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
   let subpeg = sequence(capture(*digits()),
                           capture(?sequence(charSet({'.'}), identStartChars(), *identChars())),
                           capture(?sequence(charSet({'['}), +digits(), charSet({']'}))),
@@ -380,7 +380,7 @@ proc splitfmt(s: string): seq[TPart] =
       pos = oppos + 2
       continue
     if s[oppos] == '}':
-      quit "Single '}' encountered in format string"
+      raise newException(EFormat, "Single '}' encountered in format string")
     if oppos > pos:
       result.add(TPart(kind: pkStr, str: s.substr(pos, oppos-1).unquoted))
     # find matching closing }
@@ -391,13 +391,13 @@ proc splitfmt(s: string): seq[TPart] =
       pos.inc
       pos = pos + skipUntil(s, {'{', '}'}, pos)
       if pos >= s.len:
-        quit "Single '{' encountered in format string"
+        raise newException(EFormat, "Single '{' encountered in format string")
       if s[pos] == '{':
         lvl.inc
         if lvl == 2:
           recursive = true
         if lvl > 2:
-          quit "Too many nested format levels"
+          raise newException(EFormat, "Too many nested format levels")
       else:
         lvl.dec
     let clpos = pos
@@ -405,7 +405,7 @@ proc splitfmt(s: string): seq[TPart] =
     if fmtpart.fmt.len > 0:
       var m: array[0..3, string]
       if not fmtpart.fmt.match(subpeg, m):
-        quit "invalid format string"
+        raise newException(EFormat, "invalid format string")
 
       if m[1] != nil and m[1].len > 0:
         fmtpart.field = m[1].substr(1)
@@ -422,46 +422,49 @@ proc splitfmt(s: string): seq[TPart] =
     result.add(fmtpart)
     pos = clpos + 1
 
-proc addstr(r: var PNimrodNode; str: PNimrodNode) {.compiletime.} =
+proc addstr(r: var PNimrodNode; str: PNimrodNode) {.compiletime, nosideeffect.} =
   if r.kind != nnkNilLit:
     r = infix(r, "&", str)
   else:
     r = str
 
-proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.compiletime.} =
-  let parts = splitfmt(fmtstr)
-  var autonumber = arg
-  var r: PNimrodNode
-  for p in parts:
-    case p.kind
-    of pkStr:
-      r.addstr(newLit(p.str))
-    of pkFmt:
-      if p.arg >= 0:
-        if autonumber > 0:
-          quit "Cannot switch from automatic field numbering to manual field specification"
-        autonumber = -1
-        arg = p.arg
-      else:
-        if autonumber < 0:
-          quit "Cannot switch from manual field specification to automatic field numbering"
-        autonumber = +1
-      var argexpr = args[arg]
-      if p.field != nil and p.field.len > 0:
-        argexpr = newDotExpr(argexpr, p.field.ident)
-      if p.index < int.high:
-        argexpr = newNimNode(nnkBracketExpr).add(argexpr, newLit(p.index))
-      if p.recursive:
-        if autonumber < 0:
-          arg = -1
+proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.compiletime, nosideeffect.} =
+  try:
+    let parts = splitfmt(fmtstr)
+    var autonumber = arg
+    var r: PNimrodNode
+    for p in parts:
+      case p.kind
+      of pkStr:
+        r.addstr(newLit(p.str))
+      of pkFmt:
+        if p.arg >= 0:
+          if autonumber > 0:
+            raise newException(EFormat, "Cannot switch from automatic field numbering to manual field specification")
+          autonumber = -1
+          arg = p.arg
         else:
+          if autonumber < 0:
+            raise newException(EFormat, "Cannot switch from manual field specification to automatic field numbering")
+          autonumber = +1
+        var argexpr = args[arg]
+        if p.field != nil and p.field.len > 0:
+          argexpr = newDotExpr(argexpr, p.field.ident)
+        if p.index < int.high:
+          argexpr = newNimNode(nnkBracketExpr).add(argexpr, newLit(p.index))
+        if p.recursive:
+          if autonumber < 0:
+            arg = -1
+          else:
+            arg.inc
+          var rec = rawfmt(p.fmt, args, arg)
+          r.addstr(newCall(bindsym"format", argexpr, rec))
+        else:
+          r.addstr(newCall(bindsym"formatstatic", argexpr, newLit(p.fmt)))
           arg.inc
-        var rec = rawfmt(p.fmt, args, arg)
-        r.addstr(newCall(bindsym"format", argexpr, rec))
-      else:
-        r.addstr(newCall(bindsym"formatstatic", argexpr, newLit(p.fmt)))
-        arg.inc
-  result = r
+    result = r
+  finally:
+    discard
 
 macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   var arg = 0
