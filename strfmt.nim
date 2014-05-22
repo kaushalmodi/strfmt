@@ -68,6 +68,7 @@ type
       recursive: bool ## true if the argument contains recursive formats
 
 const
+  DefaultFmt*: TFormat = (nil, faDefault, fsMinus, false, -1, false, -1, ftDefault, false, nil)
   DefaultPrec = 6
   round_nums* = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
 
