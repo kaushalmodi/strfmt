@@ -499,17 +499,22 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
     result.add(fmtpart)
     pos = clpos + 1
 
-proc addf(s: var string; x: string) {.inline.} =
+proc addfmt(s: var string; x: string): var string {.inline, discardable.} =
   s.add(x)
+  result = s
 
-proc addf[T](s: var string; x: T; fmt: TFormat) {.inline.} =
+proc addfmt*[T](s: var string; x: T; fmt: TFormat): var string {.inline, discardable.} =
   writef(s, proc (o: var string; c: char) = o.add(c), x, fmt)
+  result = s
+
+proc addfmt*[T](s: var string; x: T; fmt: string): var string {.inline, discardable.} =
+  result = addfmt(s, x, parse(fmt))
 
 proc addstr(r: var PNimrodNode; ret, str: PNimrodNode; fmt: PNimrodNode = nil) {.compiletime, nosideeffect.} =
   if fmt == nil:
-    r.add(newCall(bindsym"addf", ret, str))
+    r.add(newCall(bindsym"addfmt", ret, str))
   else:
-    r.add(newCall(bindsym"addf", ret, str, fmt))
+    r.add(newCall(bindsym"addfmt", ret, str, fmt))
 
 proc literal(s: string): PNimrodNode {.compiletime, nosideeffect.} =
   result = if s == nil: newNilLit() else: newLit(s)
