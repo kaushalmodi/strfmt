@@ -18,6 +18,7 @@ import parseutils
 import unicode
 import pegs
 import math
+import unsigned
 
 type
   EFormat = object of EBase
@@ -153,6 +154,8 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: TRune; fmt: TFormat) =
   for c in s: add(o, c)
   writefill(o, add, fmt, alg.right)
 
+proc abs(x: TUnsignedInt): TUnsignedInt {.inline.} = x
+
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
   if not (fmt.typ in {0.char, 'b', 'o', 'x', 'X', 'd', 'n'}):
     raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
@@ -176,7 +179,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
   var x : type(i) = abs(i)
   var irev : type(i) = 0
   var ilen = 0
-  while x > 0:
+  while x > 0.TInteger:
     len.inc
     ilen.inc
     irev = irev * base + x mod base
@@ -186,9 +189,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
     len.inc
 
   var alg = getalign(fmt, '>', len)
-
-
-  writefill(o, add, fmt, alg.left, if i >= 0: 1 else: -1)
+  writefill(o, add, fmt, alg.left, if i >= 0.TInteger: 1 else: -1)
   if fmt.baseprefix:
     case fmt.typ
     of 'b':
@@ -207,12 +208,19 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
     let c = irev mod base
     irev = irev div base
     if c < 10:
-      add(o, ('0'.int + c).char)
+      add(o, ('0'.int + c.int).char)
     elif fmt.typ == 'x':
-      add(o, ('a'.int + c - 10).char)
+      add(o, ('a'.int + c.int - 10).char)
     else:
-      add(o, ('A'.int + c - 10).char)
+      add(o, ('A'.int + c.int - 10).char)
   writefill(o, add, fmt, alg.right)
+
+proc writef*[Obj](o: var Obj; add: TWrite[Obj]; p: pointer; fmt: TFormat) =
+  var f = fmt
+  if f.typ == 0.char:
+    f.typ = 'x'
+    f.baseprefix = true
+  writef(o, add, cast[uint](p), f)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
   if not (fmt.typ in {0.char, 'e', 'E', 'f', 'F', 'g', 'G', 'n', '%'}):
