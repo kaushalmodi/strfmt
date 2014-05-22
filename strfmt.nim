@@ -448,7 +448,7 @@ proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.comp
         arg.inc
   result = r
 
-macro fmt*(fmtstr: string; args: varargs[expr]) : expr =
+macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   var arg = 0
   result = rawfmt($fmtstr, args, arg)
 
