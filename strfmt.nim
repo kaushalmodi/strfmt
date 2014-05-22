@@ -89,7 +89,18 @@ proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; beg
     result = def
 
 proc parse*(fmt: string): TFormat {.nosideeffect.} =
-  let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
+  # let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
+  let p =
+    sequence(capture(?sequence(anyRune(), &charSet({'<', '>', '=', '^'}))),
+             capture(?charSet({'<', '>', '=', '^'})),
+             capture(?charSet({'-', '+', ' '})),
+             capture(?charSet({'#'})),
+             capture(?(+digits())),
+             capture(?charSet({','})),
+             capture(?sequence(charSet({'.'}), +digits())),
+             capture(?charSet({'b', 'c', 'd', 'e', 'E', 'f', 'F', 'g', 'G', 'n', 'o', 's', 'x', 'X', '%'})),
+             capture(?sequence(charSet({'a'}), *pegs.any())))
+
   var caps: TCaptures
   if fmt.rawmatch(p, 0, caps) < 0:
     raise newException(EFormat, "Invalid format string")
@@ -498,6 +509,18 @@ proc addstr(r: var PNimrodNode; str: PNimrodNode) {.compiletime, nosideeffect.} 
   else:
     r = str
 
+proc literal(s: string): PNimrodNode {.compiletime.} =
+  result = if s == nil: newNilLit() else: newLit(s)
+
+proc literal(b: bool): PNimrodNode {.compiletime.} =
+  result = if b: "true".ident else: "false".ident
+
+proc literal[T](x: T): PNimrodNode {.compiletime.} =
+  when T is enum:
+    result = ($x).ident
+  else:
+    result = newLit(x)
+
 proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.compiletime, nosideeffect.} =
   try:
     let parts = splitfmt(fmtstr)
@@ -528,9 +551,13 @@ proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.comp
           else:
             arg.inc
           var rec = rawfmt(p.fmt, args, arg)
-          r.addstr(newCall(bindsym"format", argexpr, rec))
+          r.addstr(newCall(!"format", argexpr, rec))
         else:
-          r.addstr(newCall(bindsym"formatstatic", argexpr, newLit(p.fmt)))
+          let f = p.fmt.parse
+          let fmtlit = newNimNode(nnkPar)
+          for field, val in f.fieldPairs:
+            fmtlit.add(newNimNode(nnkExprColonExpr).add(field.ident, literal(val)))
+          r.addstr(newCall(bindsym"format", argexpr, fmtlit))
           arg.inc
     result = r
   finally:
