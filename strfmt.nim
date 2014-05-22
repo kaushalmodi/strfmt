@@ -504,19 +504,25 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
     result.add(fmtpart)
     pos = clpos + 1
 
-proc addstr(r: var PNimrodNode; str: PNimrodNode) {.compiletime, nosideeffect.} =
-  if r.kind != nnkNilLit:
-    r = infix(r, "&", str)
-  else:
-    r = str
+proc addf(s: var string; x: string) {.inline.} =
+  s.add(x)
 
-proc literal(s: string): PNimrodNode {.compiletime.} =
+proc addf[T](s: var string; x: T; fmt: TFormat) {.inline.} =
+  writef(s, proc (o: var string; c: char) = o.add(c), x, fmt)
+
+proc addstr(r: var PNimrodNode; ret, str: PNimrodNode; fmt: PNimrodNode = nil) {.compiletime, nosideeffect.} =
+  if fmt == nil:
+    r.add(newCall(bindsym"addf", ret, str))
+  else:
+    r.add(newCall(bindsym"addf", ret, str, fmt))
+
+proc literal(s: string): PNimrodNode {.compiletime, nosideeffect.} =
   result = if s == nil: newNilLit() else: newLit(s)
 
-proc literal(b: bool): PNimrodNode {.compiletime.} =
+proc literal(b: bool): PNimrodNode {.compiletime, nosideeffect.} =
   result = if b: "true".ident else: "false".ident
 
-proc literal[T](x: T): PNimrodNode {.compiletime.} =
+proc literal[T](x: T): PNimrodNode {.compiletime, nosideeffect.} =
   when T is enum:
     result = ($x).ident
   else:
@@ -526,11 +532,14 @@ proc rawfmt(fmtstr: string; args: openarray[PNimrodNode], arg: var int): PNimrod
   try:
     let parts = splitfmt(fmtstr)
     var autonumber = arg
-    var r: PNimrodNode
+    let retvar = gensym(nskVar)
+    var r: PNimrodNode = newNimNode(nnkStmtListExpr)
+    r.add(newVarStmt(retvar, newCall(bindsym"newString", newLit(0))))
+    r.add(newCall(bindsym"shallow", retvar))
     for p in parts:
       case p.kind
       of pkStr:
-        r.addstr(newLit(p.str))
+        r.addstr(retvar, newLit(p.str))
       of pkFmt:
         if p.arg >= 0:
           if autonumber > 0:
@@ -552,14 +561,15 @@ proc rawfmt(fmtstr: string; args: openarray[PNimrodNode], arg: var int): PNimrod
           else:
             arg.inc
           var rec = rawfmt(p.fmt, args, arg)
-          r.addstr(newCall(!"format", argexpr, rec))
+          r.addstr(retvar, argexpr, newCall(bindsym"parse", rec))
         else:
           let f = p.fmt.parse
           let fmtlit = newNimNode(nnkPar)
           for field, val in f.fieldPairs:
             fmtlit.add(newNimNode(nnkExprColonExpr).add(field.ident, literal(val)))
-          r.addstr(newCall(bindsym"format", argexpr, fmtlit))
+          r.addstr(retvar, argexpr, fmtlit)
           arg.inc
+    r.add(retvar)
     result = r
   finally:
     discard
@@ -569,7 +579,7 @@ macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   var genargs = newseq[PNimrodNode](args.len)
   result = newNimNode(nnkStmtListExpr)
   for i in 0..args.len-1:
-    let asym = gensym()
+    let asym = gensym(nskLet, "arg" & $i)
     result.add(newLetStmt(asym, args[i]))
     genargs[i] = asym
   result.add(rawfmt($fmtstr, genargs, arg))
