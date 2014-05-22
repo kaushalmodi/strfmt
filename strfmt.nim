@@ -522,7 +522,7 @@ proc literal[T](x: T): PNimrodNode {.compiletime.} =
   else:
     result = newLit(x)
 
-proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.compiletime, nosideeffect.} =
+proc rawfmt(fmtstr: string; args: openarray[PNimrodNode], arg: var int): PNimrodNode {.compiletime, nosideeffect.} =
   try:
     let parts = splitfmt(fmtstr)
     var autonumber = arg
@@ -566,7 +566,13 @@ proc rawfmt(fmtstr: string; args: PNimrodNode, arg: var int): PNimrodNode {.comp
 
 macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   var arg = 0
-  result = rawfmt($fmtstr, args, arg)
+  var genargs = newseq[PNimrodNode](args.len)
+  result = newNimNode(nnkStmtListExpr)
+  for i in 0..args.len-1:
+    let asym = gensym()
+    result.add(newLetStmt(asym, args[i]))
+    genargs[i] = asym
+  result.add(rawfmt($fmtstr, genargs, arg))
 
 when isMainModule:
   # string with 's'
@@ -765,3 +771,6 @@ when isMainModule:
 
   doassert "{0.name:.^10} {0.age}".fmt((name:"john", age:27)) == "...john... 27"
   doassert "{0[1]:.^10} {0[0]}".fmt(["27", "john"]) == "...john... 27"
+
+  var x = 0
+  doassert "{0} {0}".fmt((x.inc; x)) == "1 1"
