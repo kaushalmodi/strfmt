@@ -428,11 +428,6 @@ proc format*[T](x: T): string {.inline.} =
   var fmt {.global.} : TFormat
   result = format(x, fmt)
 
-# semistatic does not work, yet, so we use this workaround
-proc formatstatic*[T](x: T; fmt: static[string]): string {.inline.} =
-  var f {.global.} = fmt.parse
-  result = format(x, f)
-
 proc unquoted(s: string): string =
   ## Append s to r replacing {{ and }} by single { and }, respectively.
   result = ""
