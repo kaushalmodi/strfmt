@@ -25,15 +25,33 @@ type
 
   TWrite*[T] = proc (o: var T; c: char)
 
+  TFmtAlign* = enum faDefault, faLeft, faRight, faCenter, faPadding
+
+  TFmtSign* = enum fsMinus, fsPlus, fsSpace
+
+  TFmtType* = enum
+    ftDefault,
+    ftStr,
+    ftChar,
+    ftDec,
+    ftBin,
+    ftOct,
+    ftHex,
+    ftFix,
+    ftSci,
+    ftGen,
+    ftPercent
+
   TFormat* = tuple
     fill: string  ## the fill character, UTF8
-    align: char   ## the alignment, either <, >, ^, = or \0 (default)
-    sign: char    ## the sign, either +, - or SPACE (- default)
+    align: TFmtAlign
+    sign: TFmtSign
     baseprefix: bool
     width: int
     comma: bool
     precision: int
-    typ: char     ## the format type: bcdeEfFgGnosxX%
+    typ: TFmtType
+    upcase: bool    ## upper case letters in hex or exponential formats
     arysep: string
 
   TPartKind = enum pkStr, pkFmt
@@ -76,55 +94,93 @@ proc parse*(fmt: string): TFormat {.nosideeffect.} =
   if fmt.rawmatch(p, 0, caps) < 0:
     raise newException(EFormat, "Invalid format string")
 
-  result.fill = fmt.get(caps, 0, " ")
-  result.align = fmt.get(caps, 1, 0.char)
-  result.sign  = fmt.get(caps, 2, '-')
+  result.fill = fmt.get(caps, 0, nil)
+
+  case fmt.get(caps, 1, 0.char)
+  of '<': result.align = faLeft
+  of '>': result.align = faRight
+  of '^': result.align = faCenter
+  of '=': result.align = faPadding
+  else: result.align = faDefault
+
+  case fmt.get(caps, 2, '-')
+  of '-': result.sign = fsMinus
+  of '+': result.sign = fsPlus
+  of ' ': result.sign = fsSpace
+  else: result.sign = fsMinus
+
   result.baseprefix = caps.has(3)
+
   result.width = fmt.get(caps, 4, -1)
+
   if caps.has(4) and fmt[caps.bounds(4).first] == '0':
+    if result.fill != nil:
+      raise newException(EFormat, "Leading 0 in with not allowed with explicit fill character")
+    if result.align != faDefault:
+      raise newException(EFormat, "Leading 0 in with not allowed with explicit alignment")
     result.fill = "0"
-    result.align = '='
+    result.align = faPadding
+
   result.comma = caps.has(5)
+
   result.precision = fmt.get(caps, 6, -1, 1)
-  result.typ = fmt.get(caps, 7, 0.char)
+
+  case fmt.get(caps, 7, 0.char)
+  of 's': result.typ = ftStr
+  of 'c': result.typ = ftChar
+  of 'd', 'n': result.typ = ftDec
+  of 'b': result.typ = ftBin
+  of 'o': result.typ = ftOct
+  of 'x': result.typ = ftHex
+  of 'X': result.typ = ftHex; result.upcase = true
+  of 'f', 'F': result.typ = ftFix
+  of 'e': result.typ = ftSci
+  of 'E': result.typ = ftSci; result.upcase = true
+  of 'g': result.typ = ftGen
+  of 'G': result.typ = ftGen; result.upcase = true
+  of '%': result.typ = ftPercent
+  else: result.typ = ftDefault
+
   result.arysep = fmt.get(caps, 8, nil, 1)
 
-proc getalign(fmt: TFormat; defalg: char; slen: int) : tuple[left, right:int] {.nosideeffect.} =
+proc getalign(fmt: TFormat; defalign: TFmtAlign; slen: int) : tuple[left, right:int] {.nosideeffect.} =
   result.left = 0
   result.right = 0
   if (fmt.width >= 0) and (slen < fmt.width):
-    let alg = if fmt.align == 0.char: defalg else: fmt.align
+    let alg = if fmt.align == faDefault: defalign else: fmt.align
     case alg:
-    of '<': result.right = fmt.width - slen
-    of '>', '=': result.left = fmt.width - slen
-    of '^':
+    of faLeft: result.right = fmt.width - slen
+    of faRight, faPadding: result.left = fmt.width - slen
+    of faCenter:
       result.left = (fmt.width - slen) div 2
       result.right = fmt.width - slen - result.left
     else: discard
 
-proc writefill[Obj](o: var Obj; add: TWrite[Obj]; fmt: TFormat; n: int; sign: int = 0) =
+proc writefill[Obj](o: var Obj; add: TWrite[Obj]; fmt: TFormat; n: int; signum: int = 0) =
+  if fmt.align == faPadding and signum != 0:
+    if signum < 0: add(o, '-')
+    elif fmt.sign == fsPlus: add(o, '+')
+    elif fmt.sign == fsSpace: add(o, ' ')
 
-  if fmt.align == '=' and sign != 0:
-    if sign < 0: add(o, '-')
-    elif fmt.sign == '+': add(o, '+')
-    elif fmt.sign == ' ': add(o, ' ')
+  if fmt.fill == nil:
+    for i in 1..n: add(o, ' ')
+  else:
+    for i in 1..n:
+      for c in fmt.fill:
+        add(o, c)
 
-  for i in 1..n:
-    for c in fmt.fill.items:
-      add(o, c)
-
-  if fmt.align != '=' and sign != 0:
-    if sign < 0: add(o, '-')
-    elif fmt.sign == '+': add(o, '+')
-    elif fmt.sign == ' ': add(o, ' ')
+  if fmt.align != faPadding and signum != 0:
+    if signum < 0: add(o, '-')
+    elif fmt.sign == fsPlus: add(o, '+')
+    elif fmt.sign == fsSpace: add(o, ' ')
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
-  if not (fmt.typ in {'s', 0.char}):
+  if not (fmt.typ in {ftStr, ftDefault}):
     raise newException(EFormat, "String variable must have 's' format type")
 
   # compute alignment
   let len = if fmt.precision < 0: runelen(s) else: min(runelen(s), fmt.precision)
-  var alg = getalign(fmt, '<', len)
+  var alg = getalign(fmt, faLeft, len)
   writefill(o, add, fmt, alg.left)
   var pos = 0
   for i in 0..len-1:
@@ -134,21 +190,21 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: char; fmt: TFormat) =
-  if not (fmt.typ in {'c', 0.char}):
+  if not (fmt.typ in {ftChar, ftDefault}):
     raise newException(EFormat, "Character variable must have 'c' format type")
 
   # compute alignment
-  var alg = getalign(fmt, '<', 1)
+  var alg = getalign(fmt, faLeft, 1)
   writefill(o, add, fmt, alg.left)
   add(o, c)
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: TRune; fmt: TFormat) =
-  if not (fmt.typ in {'c', 0.char}):
+  if not (fmt.typ in {ftChar, ftDefault}):
     raise newException(EFormat, "Character variable must have 'c' format type")
 
   # compute alignment
-  var alg = getalign(fmt, '<', 1)
+  var alg = getalign(fmt, faLeft, 1)
   writefill(o, add, fmt, alg.left)
   let s = c.toUTF8
   for c in s: add(o, c)
@@ -157,27 +213,29 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: TRune; fmt: TFormat) =
 proc abs(x: TUnsignedInt): TUnsignedInt {.inline.} = x
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
-  if not (fmt.typ in {0.char, 'b', 'o', 'x', 'X', 'd', 'n'}):
+  if not (fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}):
     raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
 
-  var base : type(i) = 10
+  var base: type(i)
   var len = 0
   case fmt.typ:
-  of 'b':
+  of ftDec, ftDefault:
+    base = 10
+  of ftBin:
     base = 2
     if fmt.baseprefix: len += 2
-  of 'o':
+  of ftOct:
     base = 8
     if fmt.baseprefix: len += 2
-  of 'x', 'X':
+  of ftHex:
     base = 16
     if fmt.baseprefix: len += 2
-  else: discard
+  else: assert(false)
 
-  if fmt.sign != '-' or i < 0: len.inc
+  if fmt.sign != fsMinus or i < 0: len.inc
 
-  var x : type(i) = abs(i)
-  var irev : type(i) = 0
+  var x: type(i) = abs(i)
+  var irev: type(i) = 0
   var ilen = 0
   while x > 0.TInteger:
     len.inc
@@ -188,31 +246,31 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
     ilen.inc
     len.inc
 
-  var alg = getalign(fmt, '>', len)
+  var alg = getalign(fmt, faRight, len)
   writefill(o, add, fmt, alg.left, if i >= 0.TInteger: 1 else: -1)
   if fmt.baseprefix:
     case fmt.typ
-    of 'b':
+    of ftBin:
       add(o, '0')
       add(o, 'b')
-    of 'o':
+    of ftOct:
       add(o, '0')
       add(o, 'o')
-    of 'x', 'X':
+    of ftHex:
       add(o, '0')
       add(o, 'x')
     else:
-      discard
+      raise newException(EFormat, "# only allowed with b, o, x or X")
   while ilen > 0:
     ilen.dec
     let c = irev mod base
     irev = irev div base
     if c < 10:
       add(o, ('0'.int + c.int).char)
-    elif fmt.typ == 'x':
-      add(o, ('a'.int + c.int - 10).char)
-    else:
+    elif fmt.upcase:
       add(o, ('A'.int + c.int - 10).char)
+    else:
+      add(o, ('a'.int + c.int - 10).char)
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; p: pointer; fmt: TFormat) =
@@ -223,12 +281,12 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; p: pointer; fmt: TFormat) =
   writef(o, add, cast[uint](p), f)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
-  if not (fmt.typ in {0.char, 'e', 'E', 'f', 'F', 'g', 'G', 'n', '%'}):
-    raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
+  if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
+    raise newException(EFormat, "Integer variable must of one of the following types: f,F,e,E,g,G,%")
 
   var len = 0
 
-  if fmt.sign != '-' or x < 0: len.inc
+  if fmt.sign != fsMinus or x < 0: len.inc
 
   var prec = if fmt.precision < 0: DefaultPrec else: fmt.precision
   var y = abs(x)
@@ -236,7 +294,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
   var numstr, frstr: array[0..31, char]
   var numlen, frbeg, frlen = 0
 
-  if fmt.typ == '%': y *= 100
+  if fmt.typ == ftPercent: y *= 100
 
   case classify(x):
   of fcNan:
@@ -249,9 +307,9 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
     numstr[0] = '0'
     numlen = 1
   else: # a usual fractional number
-    if not (fmt.typ in {'f', 'F', '%'}): # not fixed point
+    if not (fmt.typ in {ftFix, ftPercent}): # not fixed point
       exp = int(floor(log10(y)))
-      if fmt.typ in {'g', 'G', 0.char}:
+      if fmt.typ in {ftGen, ftDefault}:
         if prec == 0: prec = 1
         if -4 <= exp and exp < prec:
           prec = prec-1-exp
@@ -266,7 +324,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
       for i in 1..abs(exp): mult *= 10
       if exp > 0: y /= mult.TReal
       elif exp < 0: y *= mult.TReal
-    elif fmt.typ == '%':
+    elif fmt.typ == ftPercent:
       len += 1 # percent sign
 
     # handle rounding by adding +0.5 * LSB
@@ -294,21 +352,21 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
       frstr[frlen] = '0'
       frlen.inc
     # possible remove trailing 0
-    if fmt.typ in {'g', 'G', 0.char}:
+    if fmt.typ in {ftGen, ftDefault}:
       while frbeg < frlen and frstr[frbeg] == '0': frbeg.inc
   # update length of string
   len += numlen;
   if frbeg < frlen:
     len += 1 + frlen - frbeg # decimal point and fractional string
 
-  let alg = getalign(fmt, '>', len)
+  let alg = getalign(fmt, faRight, len)
   writefill(o, add, fmt, alg.left, if x > 0: 1 else: -1)
   for i in (numlen-1).countdown(0): add(o, numstr[i])
   if frbeg < frlen:
     add(o, '.')
     for i in (frlen-1).countdown(frbeg): add(o, frstr[i])
-  if fmt.typ in {'e', 'E'} or (fmt.typ in {'g', 'G', 0.char} and exp != 0):
-    add(o, if fmt.typ in {'e', 'g', 0.char}: 'e' else: 'E')
+  if fmt.typ in {ftSci} or (fmt.typ in {ftGen, ftDefault} and exp != 0):
+    add(o, if fmt.upcase: 'E' else: 'e')
     if exp >= 0:
       add(o, '+')
     else:
@@ -321,7 +379,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
       while exp > 0:
         add(o, ('0'.int + exp mod 10).char)
         exp = exp div 10
-  if fmt.typ == '%': add(o, '%')
+  if fmt.typ == ftPercent: add(o, '%')
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TFormat) =
@@ -353,6 +411,10 @@ proc format*[T](x: T; fmt: TFormat): string =
 
 proc format*[T](x: T; fmt: string): string =
   result = format(x, fmt.parse)
+
+proc format*[T](x: T): string {.inline.} =
+  var fmt {.global.} : TFormat
+  result = format(x, fmt)
 
 # semistatic does not work, yet, so we use this workaround
 proc formatstatic*[T](x: T; fmt: static[string]): string {.inline.} =
@@ -504,6 +566,7 @@ when isMainModule:
   doassert "hällo".format("ü^11") == "üüühälloüüü"
 
   # integer
+  doassert 42.format() == "42"
   doassert 42.format("") == "42"
   doassert 42.format("8") == "      42"
   doassert 42.format("<8") == "42      "
