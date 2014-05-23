@@ -510,11 +510,15 @@ proc addfmt*[T](s: var string; x: T; fmt: TFormat): var string {.inline, discard
 proc addfmt*[T](s: var string; x: T; fmt: string): var string {.inline, discardable.} =
   result = addfmt(s, x, parse(fmt))
 
-proc addstr(r: var PNimrodNode; ret, str: PNimrodNode; fmt: PNimrodNode = nil) {.compiletime, nosideeffect.} =
-  if fmt == nil:
-    r.add(newCall(bindsym"addfmt", ret, str))
-  else:
-    r.add(newCall(bindsym"addfmt", ret, str, fmt))
+proc addfmt(f: TFile; x: string) {.inline.} =
+  f.write(x)
+
+proc addfmt*[T](f: TFile; x: T; fmt: TFormat) {.inline.} =
+  var fi = f
+  writef(fi, proc(o: var TFile; c: char) = o.write(c), x, fmt)
+
+proc addfmt*[T](f: TFile; x: T; fmt: string): var string {.inline.} =
+  addfmt(f, x, parse(fmt))
 
 proc literal(s: string): PNimrodNode {.compiletime, nosideeffect.} =
   result = if s == nil: newNilLit() else: newLit(s)
@@ -607,6 +611,24 @@ macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
     else:
       result.add(newCall(bindsym"addfmt", retvar, e.val, e.fmt))
   result.add(retvar)
+
+macro writefmt*(f: TFile; fmtstr: string; args: varargs[expr]): expr =
+  var genargs = newseq[PNimrodNode](args.len)
+  result = newNimNode(nnkStmtListExpr)
+  # generate let bindings for arguments
+  for i in 0..args.len-1:
+    let asym = gensym(nskLet, "arg" & $i)
+    result.add(newLetStmt(asym, args[i]))
+    genargs[i] = asym
+  # generate result variable
+  var retvar = f
+  # add result values
+  var arg = 0
+  for e in generatefmt($fmtstr, genargs, arg):
+    if e.fmt == nil or e.fmt.kind == nnkNilLit:
+      result.add(newCall(bindsym"addfmt", retvar, e.val))
+    else:
+      result.add(newCall(bindsym"addfmt", retvar, e.val, e.fmt))
 
 when isMainModule:
   # string with 's'
