@@ -598,44 +598,31 @@ proc generatefmt(fmtstr: string;
   finally:
     discard
 
-macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
-  var genargs = newseq[PNimrodNode](args.len)
+proc addfmtfmt(fmtstr: string; args: PNimrodNode; retvar: PNimrodNode): PNimrodNode {.compileTime.} =
+  var argexprs = newseq[PNimrodNode](args.len)
   result = newNimNode(nnkStmtListExpr)
   # generate let bindings for arguments
   for i in 0..args.len-1:
-    let asym = gensym(nskLet, "arg" & $i)
-    result.add(newLetStmt(asym, args[i]))
-    genargs[i] = asym
-  # generate result variable
-  var retvar = gensym(nskVar, "ret")
-  result.add(newVarStmt(retvar, newCall(bindsym"newString", newLit(0))))
-  result.add(newCall(bindsym"shallow", retvar))
+    let argsym = gensym(nskLet, "arg" & $i)
+    result.add(newLetStmt(argsym, args[i]))
+    argexprs[i] = argsym
   # add result values
   var arg = 0
-  for e in generatefmt($fmtstr, genargs, arg):
+  for e in generatefmt(fmtstr, argexprs, arg):
     if e.fmt == nil or e.fmt.kind == nnkNilLit:
       result.add(newCall(bindsym"addfmt", retvar, e.val))
     else:
       result.add(newCall(bindsym"addfmt", retvar, e.val, e.fmt))
+
+macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
+  var retvar = gensym(nskVar, "ret")
+  result = newNimNode(nnkStmtListExpr)
+  result.add(newVarStmt(retvar, newCall(bindsym"newString", newLit(0))))
+  result.add(addfmtfmt($fmtstr, args, retvar))
   result.add(retvar)
 
 macro writefmt*(f: TFile; fmtstr: string; args: varargs[expr]): expr =
-  var genargs = newseq[PNimrodNode](args.len)
-  result = newNimNode(nnkStmtListExpr)
-  # generate let bindings for arguments
-  for i in 0..args.len-1:
-    let asym = gensym(nskLet, "arg" & $i)
-    result.add(newLetStmt(asym, args[i]))
-    genargs[i] = asym
-  # generate result variable
-  var retvar = f
-  # add result values
-  var arg = 0
-  for e in generatefmt($fmtstr, genargs, arg):
-    if e.fmt == nil or e.fmt.kind == nnkNilLit:
-      result.add(newCall(bindsym"addfmt", retvar, e.val))
-    else:
-      result.add(newCall(bindsym"addfmt", retvar, e.val, e.fmt))
+  result = addfmtfmt($fmtstr, args, f)
 
 when isMainModule:
   # string with 's'
