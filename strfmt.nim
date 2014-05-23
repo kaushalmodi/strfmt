@@ -457,7 +457,7 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
       pos = oppos + 2
       continue
     if s[oppos] == '}':
-      raise newException(EFormat, "Single '}' encountered in format string")
+      error("Single '}' encountered in format string")
     if oppos > pos:
       result.add(TPart(kind: pkStr, str: s.substr(pos, oppos-1).unquoted))
     # find matching closing }
@@ -468,13 +468,13 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
       pos.inc
       pos = pos + skipUntil(s, {'{', '}'}, pos)
       if pos >= s.len:
-        raise newException(EFormat, "Single '{' encountered in format string")
+        error("Single '{' encountered in format string")
       if s[pos] == '{':
         lvl.inc
         if lvl == 2:
           nested = true
         if lvl > 2:
-          raise newException(EFormat, "Too many nested format levels")
+          error("Too many nested format levels")
       else:
         lvl.dec
     let clpos = pos
@@ -482,7 +482,7 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
     if fmtpart.fmt.len > 0:
       var m: array[0..3, string]
       if not fmtpart.fmt.match(subpeg, m):
-        raise newException(EFormat, "invalid format string")
+        error("invalid format string")
 
       if m[1] != nil and m[1].len > 0:
         fmtpart.field = m[1].substr(1)
@@ -563,12 +563,12 @@ proc generatefmt(fmtstr: string;
         var argexpr : PNimrodNode
         if part.arg >= 0:
           if arg > 0:
-            raise newException(EFormat, "Cannot switch from automatic field numbering to manual field specification")
+            error("Cannot switch from automatic field numbering to manual field specification")
           argexpr = args[part.arg]
           arg = -1
         else:
           if arg < 0:
-            raise newException(EFormat, "Cannot switch from manual field specification to automatic field numbering")
+            error("Cannot switch from manual field specification to automatic field numbering")
           argexpr = args[arg]
           arg.inc
         # possible field access
