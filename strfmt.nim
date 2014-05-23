@@ -622,7 +622,20 @@ macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   result.add(retvar)
 
 macro writefmt*(f: TFile; fmtstr: string; args: varargs[expr]): expr =
+  ## The same as `write(f, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr, args, f)
+
+macro writelnfmt*(f: TFile; fmtstr: string; args: varargs[expr]): expr =
+  ## The same as `writeln(f, fmtstr.fmt(args...))` but faster.
+  result = addfmtfmt($fmtstr & "\n", args, f)
+
+macro printfmt*(fmtstr: string{lit}; args: varargs[expr]): expr =
+  ## The same as `writefmt(stdout, fmtstr, args...)`.
+  result = addfmtfmt($fmtstr, args, bindsym"stdout")
+
+macro printlnfmt*(fmtstr: string{lit}; args: varargs[expr]): expr =
+  ## The same as `writelnfmt(stdout, fmtstr, args...)`.
+  result = addfmtfmt($fmtstr & "\n", args, bindsym"stdout")
 
 when isMainModule:
   # string with 's'
