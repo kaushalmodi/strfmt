@@ -499,26 +499,26 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
     result.add(fmtpart)
     pos = clpos + 1
 
-proc addfmt(s: var string; x: string): var string {.inline, discardable.} =
+proc addformat(s: var string; x: string): var string {.inline, discardable.} =
   s.add(x)
   result = s
 
-proc addfmt*[T](s: var string; x: T; fmt: TFormat): var string {.inline, discardable.} =
+proc addformat*[T](s: var string; x: T; fmt: TFormat): var string {.inline, discardable.} =
   writef(s, proc (o: var string; c: char) = o.add(c), x, fmt)
   result = s
 
-proc addfmt*[T](s: var string; x: T; fmt: string): var string {.inline, discardable.} =
-  result = addfmt(s, x, parse(fmt))
+proc addformat*[T](s: var string; x: T; fmt: string): var string {.inline, discardable.} =
+  result = addformat(s, x, parse(fmt))
 
-proc addfmt(f: TFile; x: string) {.inline.} =
+proc addformat(f: TFile; x: string) {.inline.} =
   f.write(x)
 
-proc addfmt*[T](f: TFile; x: T; fmt: TFormat) {.inline.} =
+proc addformat*[T](f: TFile; x: T; fmt: TFormat) {.inline.} =
   var fi = f
   writef(fi, proc(o: var TFile; c: char) = o.write(c), x, fmt)
 
-proc addfmt*[T](f: TFile; x: T; fmt: string): var string {.inline.} =
-  addfmt(f, x, parse(fmt))
+proc addformat*[T](f: TFile; x: T; fmt: string): var string {.inline.} =
+  addformat(f, x, parse(fmt))
 
 proc literal(s: string): PNimrodNode {.compiletime, nosideeffect.} =
   result = if s == nil: newNilLit() else: newLit(s)
@@ -610,9 +610,9 @@ proc addfmtfmt(fmtstr: string; args: PNimrodNode; retvar: PNimrodNode): PNimrodN
   var arg = 0
   for e in generatefmt(fmtstr, argexprs, arg):
     if e.fmt == nil or e.fmt.kind == nnkNilLit:
-      result.add(newCall(bindsym"addfmt", retvar, e.val))
+      result.add(newCall(bindsym"addformat", retvar, e.val))
     else:
-      result.add(newCall(bindsym"addfmt", retvar, e.val, e.fmt))
+      result.add(newCall(bindsym"addformat", retvar, e.val, e.fmt))
 
 macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   var retvar = gensym(nskVar, "ret")
