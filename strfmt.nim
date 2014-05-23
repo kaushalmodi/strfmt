@@ -533,8 +533,8 @@ proc literal[T](x: T): PNimrodNode {.compiletime, nosideeffect.} =
     result = newLit(x)
 
 proc generatefmt(fmtstr: string;
-                 args: openarray[PNimrodNode],
-                 arg: var int): seq[tuple[val, fmt:PNimrodNode]] {.compiletime.} =
+                 args: var openarray[tuple[arg:PNimrodNode, cnt:int]];
+                 arg: var int;): seq[tuple[val, fmt:PNimrodNode]] {.compiletime.} =
   ## :fmtstr: the format string
   ## :args: array of expressions for the arguments
   ## :arg: the number of the next argument for automatic parsing
@@ -564,12 +564,18 @@ proc generatefmt(fmtstr: string;
         if part.arg >= 0:
           if arg > 0:
             error("Cannot switch from automatic field numbering to manual field specification")
-          argexpr = args[part.arg]
+          if part.arg >= args.len:
+            error("Invalid explicit argument index: " & $part.arg)
+          argexpr = args[part.arg].arg
+          args[part.arg].cnt = args[part.arg].cnt + 1
           arg = -1
         else:
           if arg < 0:
             error("Cannot switch from manual field specification to automatic field numbering")
-          argexpr = args[arg]
+          if arg >= args.len:
+            error("Too few arguments for format string")
+          argexpr = args[arg].arg
+          args[arg].cnt = args[arg].cnt + 1
           arg.inc
         # possible field access
         if part.field != nil and part.field.len > 0:
@@ -599,13 +605,13 @@ proc generatefmt(fmtstr: string;
     discard
 
 proc addfmtfmt(fmtstr: string; args: PNimrodNode; retvar: PNimrodNode): PNimrodNode {.compileTime.} =
-  var argexprs = newseq[PNimrodNode](args.len)
+  var argexprs = newseq[tuple[arg:PNimrodNode; cnt:int]](args.len)
   result = newNimNode(nnkStmtListExpr)
   # generate let bindings for arguments
   for i in 0..args.len-1:
     let argsym = gensym(nskLet, "arg" & $i)
     result.add(newLetStmt(argsym, args[i]))
-    argexprs[i] = argsym
+    argexprs[i].arg = argsym
   # add result values
   var arg = 0
   for e in generatefmt(fmtstr, argexprs, arg):
@@ -613,6 +619,9 @@ proc addfmtfmt(fmtstr: string; args: PNimrodNode; retvar: PNimrodNode): PNimrodN
       result.add(newCall(bindsym"addformat", retvar, e.val))
     else:
       result.add(newCall(bindsym"addformat", retvar, e.val, e.fmt))
+  for i, arg in argexprs:
+    if arg.cnt == 0:
+      warning("Argument " & $(i+1) & " `" & args[i].repr & "` is not used in format string")
 
 macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   var retvar = gensym(nskVar, "ret")
