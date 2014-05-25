@@ -16,50 +16,62 @@
 import macros
 import parseutils
 import unicode
-import pegs
 import math
 import unsigned
+import pegs
 
 type
-  EFormat = object of EBase
+  EFormat = object of EBase ## Error in the format string.
 
   TWrite*[T] = proc (o: var T; c: char)
+    ## Generic function to output a character `c` to some output
+    ## object `o`. The functions `writef` will end up calling `add(o,
+    ## c)` for each character to be written.
 
-  TFmtAlign* = enum faDefault, faLeft, faRight, faCenter, faPadding
+  TFmtAlign* = enum ## Format alignment
+    faDefault  ## default for given format type
+    faLeft     ## left aligned
+    faRight    ## right aligned
+    faCenter   ## centered
+    faPadding  ## right aligned, fill characters after sign (numbers only)
 
-  TFmtSign* = enum fsMinus, fsPlus, fsSpace
+  TFmtSign* = enum ## Format sign
+    fsMinus    ## only unary minus, no reservered sign space for positive numbers
+    fsPlus     ## unary minus and unary plus
+    fsSpace    ## unary minus and reserved space for positive numbers
 
-  TFmtType* = enum
-    ftDefault,
-    ftStr,
-    ftChar,
-    ftDec,
-    ftBin,
-    ftOct,
-    ftHex,
-    ftFix,
-    ftSci,
-    ftGen,
-    ftPercent
+  TFmtType* = enum ## Format type
+    ftDefault  ## default format for given parameter type
+    ftStr      ## string
+    ftChar     ## character
+    ftDec      ## decimal integer
+    ftBin      ## binary integer
+    ftOct      ## octal integer
+    ftHex      ## hexadecimal integer
+    ftFix      ## real number in fixed point notation
+    ftSci      ## real number in scientific notation
+    ftGen      ## real number in generic form (either fixed point or scientific)
+    ftPercent  ## real number multiplied by 100 and % added
 
-  TFormat* = tuple
-    fill: string  ## the fill character, UTF8
-    align: TFmtAlign
-    sign: TFmtSign
-    baseprefix: bool
-    width: int
-    comma: bool
-    precision: int
-    typ: TFmtType
-    upcase: bool    ## upper case letters in hex or exponential formats
-    arysep: string
+  TFormat* = tuple ## Formatting information.
+    typ: TFmtType     ## format type
+    precision: int    ## floating point precision
+    width: int        ## minimal width
+    fill: string      ## the fill character, UTF8
+    align: TFmtAlign  ## aligment
+    sign: TFmtSign    ## sign notation
+    baseprefix: bool  ## whether binary, octal, hex should be prefixed by 0b, 0x, 0o
+    upcase: bool      ## upper case letters in hex or exponential formats
+    comma: bool       ##
+    arysep: string    ## separator for array elements
 
   TPartKind = enum pkStr, pkFmt
 
   TPart = object
-    case kind: TPartKind
+    ## Information of a part of the target string.
+    case kind: TPartKind ## type of the part
     of pkStr:
-      str: string
+      str: string ## literal string
     of pkFmt:
       arg: int ## position argument
       fmt: string ## format string
@@ -68,29 +80,39 @@ type
       nested: bool ## true if the argument contains nested formats
 
 const
-  DefaultFmt*: TFormat = (nil, faDefault, fsMinus, false, -1, false, -1, ftDefault, false, nil)
-  DefaultPrec = 6
-  round_nums* = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
+  DefaultFmt*: TFormat = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil)
+    ## Default format corresponding to the empty format string, i.e.
+    ##   `x.format("") == x.format(DefaultFmt)`.
+  DefaultPrec = 6 ## Default precision for floating point numbers.
+  round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
+    ## Rounding offset for floating point numbers up to precision 8.
 
-proc has(c: TCaptures; i: range[0..maxsubpatterns-1]): bool {.nosideeffect, inline.} =
+proc has(c: TCaptures; i: range[0..pegs.maxsubpatterns-1]): bool {.nosideeffect, inline.} =
+  ## Tests whether `c` contains a non-empty capture `i`.
   let b = c.bounds(i)
   result = b.first <= b.last
 
 proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: char): char {.nosideeffect, inline.} =
+  ## If capture `i` is non-empty return that portion of `str` casted
+  ## to `char`, otherwise return `def`.
   result = if c.has(i): str[c.bounds(i).first] else: def
 
 proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: string; begoff: int = 0): string {.nosideeffect, inline.} =
+  ## If capture `i` is non-empty return that portion of `str` as
+  ## string, otherwise return `def`.
   let b = c.bounds(i)
   result = if c.has(i): str.substr(b.first + begoff, b.last) else: def
 
 proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; begoff: int = 0): int {.nosideeffect, inline.} =
+  ## If capture `i` is non-empty return that portion of `str`
+  ## converted to int, otherwise return `def`.
   if c.has(i):
     discard str.parseInt(result, c.bounds(i).first + begoff)
   else:
     result = def
 
 proc parse*(fmt: string): TFormat {.nosideeffect.} =
-  # let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
+  # Converts the format string `fmt` into a `TFormat` structure.
   let p =
     sequence(capture(?sequence(anyRune(), &charSet({'<', '>', '=', '^'}))),
              capture(?charSet({'<', '>', '=', '^'})),
@@ -101,6 +123,7 @@ proc parse*(fmt: string): TFormat {.nosideeffect.} =
              capture(?sequence(charSet({'.'}), +digits())),
              capture(?charSet({'b', 'c', 'd', 'e', 'E', 'f', 'F', 'g', 'G', 'n', 'o', 's', 'x', 'X', '%'})),
              capture(?sequence(charSet({'a'}), *pegs.any())))
+  # let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
 
   var caps: TCaptures
   if fmt.rawmatch(p, 0, caps) < 0:
@@ -155,7 +178,19 @@ proc parse*(fmt: string): TFormat {.nosideeffect.} =
 
   result.arysep = fmt.get(caps, 8, nil, 1)
 
-proc getalign(fmt: TFormat; defalign: TFmtAlign; slen: int) : tuple[left, right:int] {.nosideeffect.} =
+proc getalign*(fmt: TFormat; defalign: TFmtAlign; slen: int) : tuple[left, right:int] {.nosideeffect.} =
+  ## Returns the number of left and right padding characters for a
+  ## given format alignment and width of the object to be printed.
+  ##
+  ## `fmt`
+  ##    the format data
+  ## `default`
+  ##    if `fmt.align == faDefault`, then this alignment is used
+  ## `slen`
+  ##    the width of the object to be printed.
+  ##
+  ## The returned values `(left, right)` will be as minimal as possible
+  ## so that `left + slen + right >= fmt.width`.
   result.left = 0
   result.right = 0
   if (fmt.width >= 0) and (slen < fmt.width):
@@ -169,6 +204,20 @@ proc getalign(fmt: TFormat; defalign: TFmtAlign; slen: int) : tuple[left, right:
     else: discard
 
 proc writefill[Obj](o: var Obj; add: TWrite[Obj]; fmt: TFormat; n: int; signum: int = 0) =
+  ## Write characters for filling. This function also writes the sign
+  ## of a numeric format and handles the padding alignment
+  ## accordingly.
+  ##
+  ## `o`
+  ##   output object
+  ## `add`
+  ##   output function
+  ## `fmt`
+  ##   format to be used (important for padding aligment)
+  ## `n`
+  ##   the number of filling characters to be written
+  ## `signum`
+  ##   the sign of the number to be written, < 0 negative, > 0 positive, = 0 zero
   if fmt.align == faPadding and signum != 0:
     if signum < 0: add(o, '-')
     elif fmt.sign == fsPlus: add(o, '+')
@@ -187,6 +236,8 @@ proc writefill[Obj](o: var Obj; add: TWrite[Obj]; fmt: TFormat; n: int; signum: 
     elif fmt.sign == fsSpace: add(o, ' ')
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
+  ## Write string `s` according to format `fmt` using output object
+  ## `o` and output function `add`.
   if not (fmt.typ in {ftStr, ftDefault}):
     raise newException(EFormat, "String variable must have 's' format type")
 
@@ -202,6 +253,8 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: char; fmt: TFormat) =
+  ## Write character `c` according to format `fmt` using output object
+  ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
     raise newException(EFormat, "Character variable must have 'c' format type")
 
@@ -212,6 +265,8 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: char; fmt: TFormat) =
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: TRune; fmt: TFormat) =
+  ## Write rune `c` according to format `fmt` using output object
+  ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
     raise newException(EFormat, "Character variable must have 'c' format type")
 
@@ -223,8 +278,11 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: TRune; fmt: TFormat) =
   writefill(o, add, fmt, alg.right)
 
 proc abs(x: TUnsignedInt): TUnsignedInt {.inline.} = x
+  ## Return the absolute value of the unsigned int `x`.
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
+  ## Write integer `i` according to format `fmt` using output object
+  ## `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}):
     raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
 
@@ -286,6 +344,11 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; p: pointer; fmt: TFormat) =
+  ## Write pointer `i` according to format `fmt` using output object
+  ## `o` and output function `add`.
+  ## 
+  ## Pointers are casted to unsigned int and formated as hexadecimal
+  ## with prefix unless specified otherwise.
   var f = fmt
   if f.typ == 0.char:
     f.typ = 'x'
@@ -293,6 +356,8 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; p: pointer; fmt: TFormat) =
   writef(o, add, cast[uint](p), f)
 
 proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
+  ## Write real number `x` according to format `fmt` using output
+  ## object `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
     raise newException(EFormat, "Integer variable must of one of the following types: f,F,e,E,g,G,%")
 
@@ -395,6 +460,8 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
   writefill(o, add, fmt, alg.right)
 
 proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TFormat) =
+  ## Write array `ary` according to format `fmt` using output object
+  ## `o` and output function `add`.
   if ary.len == 0: return
 
   var sep: string
@@ -418,18 +485,22 @@ proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TForma
     writef(o, add, ary[i], nxtfmt)
 
 proc format*[T](x: T; fmt: TFormat): string =
+  ## Return `x` formatted as a string according to format `fmt`.
   result = ""
   writef(result, proc (o: var string; c: char) = add(o, c), x, fmt)
 
 proc format*[T](x: T; fmt: string): string =
+  ## Return `x` formatted as a string according to format string `fmt`.
   result = format(x, fmt.parse)
 
 proc format*[T](x: T): string {.inline.} =
+  ## Return `x` formatted as a string according to the default format.
+  ## The default format corresponds to an empty format string.
   var fmt {.global.} : TFormat
   result = format(x, fmt)
 
-proc unquoted(s: string): string =
-  ## Append s to r replacing {{ and }} by single { and }, respectively.
+proc unquoted(s: string): string {.compileTime.} =
+  ## Return `s` {{ and }} by single { and }, respectively.
   result = ""
   var pos = 0
   while pos < s.len:
@@ -438,6 +509,14 @@ proc unquoted(s: string): string =
     pos = nxt + 2
 
 proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
+  ## Split format string `s` into a sequence of "parts".
+  ## 
+
+  ## Each part is either a literal string or a format specification. A
+  ## format specification is a substring of the form
+  ## "{[arg][:format]}" where `arg` is either empty or a number
+  ## refering to the arg-th argument and an additional field or array
+  ## index. The format string is a string accepted by `parse`.
   let subpeg = sequence(capture(*digits()),
                           capture(?sequence(charSet({'.'}), identStartChars(), *identChars())),
                           capture(?sequence(charSet({'['}), +digits(), charSet({']'}))),
@@ -500,33 +579,52 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
     pos = clpos + 1
 
 proc addformat(s: var string; x: string): var string {.inline, discardable.} =
-  s.add(x)
+  ## Add a literal string `x` to string `s`.
+  ##
+  ## This function simply calls `add(s, x)`.
+  add(s, x)
   result = s
 
 proc addformat*[T](s: var string; x: T; fmt: TFormat): var string {.inline, discardable.} =
+  ## Add `x` formatted according to `fmt` to string `s`.
+  ##
+  ## This is equivalent to `addformat(s, fmt(fmt, x))` but uses the
+  ## `writef` functions directly.
   writef(s, proc (o: var string; c: char) = o.add(c), x, fmt)
   result = s
 
 proc addformat*[T](s: var string; x: T; fmt: string): var string {.inline, discardable.} =
+  ## Add `x` formatted according to format string `fmt` to string `s`.
+  ##
+  ## This is equivalent to `addformat(s, x, parse(fmt))`.
   result = addformat(s, x, parse(fmt))
 
-proc addformat(f: TFile; x: string) {.inline.} =
-  f.write(x)
-
 proc addformat*[T](f: TFile; x: T; fmt: TFormat) {.inline.} =
+  ## Add `x` formatted according to `fmt` to string `s`.
+  ##
+  ## This is equivalent to `addformat(f, fmt(fmt, x))` but uses the
+  ## `writef` functions directly.
   var fi = f
   writef(fi, proc(o: var TFile; c: char) = o.write(c), x, fmt)
 
-proc addformat*[T](f: TFile; x: T; fmt: string): var string {.inline.} =
-  addformat(f, x, parse(fmt))
+proc addformat*[Obj, T](o: Obj; x: T; fmt: string): var string {.inline.} =
+  ## Add `x` formatted according to format string `fmt` to object `o`.
+  ##
+  ## This is equivalent to `addformat(o, x, parse(fmt))`.
+  addformat(o, x, parse(fmt))
 
 proc literal(s: string): PNimrodNode {.compiletime, nosideeffect.} =
+  ## Return the nimrod literal of string `s`. This handles the case if
+  ## `s` is nil.
   result = if s == nil: newNilLit() else: newLit(s)
 
 proc literal(b: bool): PNimrodNode {.compiletime, nosideeffect.} =
+  ## Return the nimrod literal of boolean `b`. This is either `true`
+  ## or `false` symbol.
   result = if b: "true".ident else: "false".ident
 
 proc literal[T](x: T): PNimrodNode {.compiletime, nosideeffect.} =
+  ## Return the nimrod literal of value `x`.
   when T is enum:
     result = ($x).ident
   else:
@@ -535,9 +633,12 @@ proc literal[T](x: T): PNimrodNode {.compiletime, nosideeffect.} =
 proc generatefmt(fmtstr: string;
                  args: var openarray[tuple[arg:PNimrodNode, cnt:int]];
                  arg: var int;): seq[tuple[val, fmt:PNimrodNode]] {.compiletime.} =
-  ## :fmtstr: the format string
-  ## :args: array of expressions for the arguments
-  ## :arg: the number of the next argument for automatic parsing
+  ## fmtstr
+  ##   the format string
+  ## args
+  ##   array of expressions for the arguments
+  ## arg
+  ##   the number of the next argument for automatic parsing
   ##
   ## If arg is < 0 then the functions assumes that explicit numbering
   ## must be used, otherwise automatic numbering is used starting at
@@ -624,6 +725,7 @@ proc addfmtfmt(fmtstr: string; args: PNimrodNode; retvar: PNimrodNode): PNimrodN
       warning("Argument " & $(i+1) & " `" & args[i].repr & "` is not used in format string")
 
 macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
+  ## Formats arguments `args` according to the format string `fmtstr`.
   var retvar = gensym(nskVar, "ret")
   result = newNimNode(nnkStmtListExpr)
   result.add(newVarStmt(retvar, newCall(bindsym"newString", newLit(0))))
@@ -829,7 +931,6 @@ when isMainModule:
   doassert([[1,2,3], [4,5,6]].format("") == "1\t2\t3\t4\t5\t6")
   doassert([[1.0,2.0,3.0], [4.0,5.0,6.0]].format(".1e") == "1.0e+00\t2.0e+00\t3.0e+00\t4.0e+00\t5.0e+00\t6.0e+00")
 
-  import strutils
   doassert("number: {} with width: {:5.2f} string: {:.^9} array: {:a:, } end".fmt(42, 1.45, "hello", [1,2,3]) ==
              "number: 42 with width:  1.45 string: ..hello.. array: 1, 2, 3 end")
   doassert("{{{}}}".fmt("hallo") == "{hallo}")
