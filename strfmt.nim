@@ -806,7 +806,7 @@ proc writef*(o: var Writer; x: TReal; fmt: TFormat) =
   if fmt.typ == ftPercent: write(o, '%')
   writefill(o, fmt, alg.right)
 
-proc writef*[T](o: var Writer; ary: openarray[T]; fmt: TFormat) =
+proc writef*(o: var Writer; ary: openarray[any]; fmt: TFormat) =
   ## Write array `ary` according to format `fmt` using output object
   ## `o` and output function `add`.
   if ary.len == 0: return
@@ -834,17 +834,17 @@ proc writef*[T](o: var Writer; ary: openarray[T]; fmt: TFormat) =
 proc write(s: var string; c: char) =
   s.add(c)
 
-proc format*[T](x: T; fmt: TFormat): string =
+proc format*(x; fmt: TFormat): string =
   ## Return `x` formatted as a string according to format `fmt`.
   var ret = ""
   writef(ret, x, fmt)
   result = ret
 
-proc format*[T](x: T; fmt: string): string =
+proc format*(x; fmt: string): string =
   ## Return `x` formatted as a string according to format string `fmt`.
   result = format(x, fmt.parse)
 
-proc format*[T](x: T): string {.inline.} =
+proc format*(x): string {.inline.} =
   ## Return `x` formatted as a string according to the default format.
   ## The default format corresponds to an empty format string.
   var fmt {.global.} : TFormat
@@ -935,7 +935,7 @@ proc addformat*(s: var string; x: string) =
   ## This function simply calls `add(s, x)`.
   add(s, x)
 
-proc addformat*[T](s: var string; x: T; fmt: TFormat) =
+proc addformat*(s: var string; x; fmt: TFormat) =
   ## Add `x` formatted according to `fmt` to string `s`.
   ##
   ## This is equivalent to `addformat(s, fmt(fmt, x))` but uses the
@@ -949,7 +949,7 @@ proc addformat*(f: TFile; x: string) {.inline.} =
   ## `writef` functions directly.
   write(f, x)
 
-proc addformat*[T](f: TFile; x: T; fmt: TFormat) {.inline.} =
+proc addformat*(f: TFile; x; fmt: TFormat) {.inline.} =
   ## Add `x` formatted according to `fmt` to string `s`.
   ##
   ## This is equivalent to `addformat(f, fmt(fmt, x))` but uses the
@@ -957,7 +957,11 @@ proc addformat*[T](f: TFile; x: T; fmt: TFormat) {.inline.} =
   var fi = f
   writef(fi, x, fmt)
 
-proc addformat*[Obj, T](o: var Obj; x: T; fmt: string) {.inline.} =
+proc addformat*(o: var Writer; x) {.inline.} =
+  ## Add `x` formatted according to the default format to writer `o`.
+  addformat(o, x, DefaultFmt)
+
+proc addformat*(o: var Writer; x; fmt: string) {.inline.} =
   ## Add `x` formatted according to format string `fmt` to object `o`.
   ##
   ## This is equivalent to `addformat(o, x, parse(fmt))`.
@@ -973,9 +977,9 @@ proc literal(b: bool): PNimrodNode {.compiletime, nosideeffect.} =
   ## or `false` symbol.
   result = if b: "true".ident else: "false".ident
 
-proc literal[T](x: T): PNimrodNode {.compiletime, nosideeffect.} =
+proc literal(x): PNimrodNode {.compiletime, nosideeffect.} =
   ## Return the nimrod literal of value `x`.
-  when T is enum:
+  when type(x) is enum:
     result = ($x).ident
   else:
     result = newLit(x)
