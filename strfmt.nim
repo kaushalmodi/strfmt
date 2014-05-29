@@ -340,7 +340,7 @@
 ## (Note that this is a statement-list-expression). The functions
 ## `addformat` are defined within `strfmt` and add formatted output to
 ## the string `ret`.
-
+##
 ## Writing formatted output to a file: `writefmt`
 ## ----------------------------------------------
 ## The `writefmt` familiy of macros are convenience helpers to write
@@ -358,6 +358,26 @@
 ## strings (the variable `ret` in the example above) but writes
 ## directly to the output file. The `printfmt` familiy of functions
 ## does the same but writes to `stdout`.
+##
+## Adding new formatting functions
+## -------------------------------
+## In order to add a new formatting function for a type `T` one has to
+## define a new function `writeformat(o: var Writer; x: T; fmt:
+## TFormat)`. The following example defines a formatting function for
+## a simple 2D-point data type. The format specification is used for
+## the printing the two coordinate values.
+##
+## .. code-block:: nimrod
+##
+##   type TPoint = tuple[x, y: float]
+##
+##   proc writeformat*(o: var Writer; p: TPoint; fmt: TFormat) =
+##     write(o, '(')
+##     writeformat(o, p.x, fmt)
+##     write(o, ',')
+##     write(o, ' ')
+##     writeformat(o, p.y, fmt)
+##     write(o, ')')
 
 import macros
 import parseutils
