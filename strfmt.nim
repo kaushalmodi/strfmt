@@ -755,7 +755,7 @@ proc writeformat*(o: var Writer; x: TReal; fmt: TFormat) =
       len += 1 # percent sign
 
     # handle rounding by adding +0.5 * LSB
-    if prec < round_nums.len: y += round_nums[prec]
+    if prec < len(round_nums): y += round_nums[prec]
 
     # split into integer and fractional part
     var mult = 1'i64
