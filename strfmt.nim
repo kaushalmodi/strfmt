@@ -434,6 +434,9 @@ const
   round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
     ## Rounding offset for floating point numbers up to precision 8.
 
+proc write(s: var string; c: char) =
+  s.add(c)
+
 proc has(c: TCaptures; i: range[0..pegs.maxsubpatterns-1]): bool {.nosideeffect, inline.} =
   ## Tests whether `c` contains a non-empty capture `i`.
   let b = c.bounds(i)
@@ -582,7 +585,7 @@ proc writefill(o: var Writer; fmt: TFormat; n: int; signum: int = 0) =
     elif fmt.sign == fsPlus: write(o, '+')
     elif fmt.sign == fsSpace: write(o, ' ')
 
-proc writef*(o: var Writer; s: string; fmt: TFormat) =
+proc writeformat*(o: var Writer; s: string; fmt: TFormat) =
   ## Write string `s` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftStr, ftDefault}):
@@ -599,7 +602,7 @@ proc writef*(o: var Writer; s: string; fmt: TFormat) =
     pos += rlen
   writefill(o, fmt, alg.right)
 
-proc writef*(o: var Writer; c: char; fmt: TFormat) =
+proc writeformat*(o: var Writer; c: char; fmt: TFormat) =
   ## Write character `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
@@ -611,7 +614,7 @@ proc writef*(o: var Writer; c: char; fmt: TFormat) =
   write(o, c)
   writefill(o, fmt, alg.right)
 
-proc writef*(o: var Writer; c: TRune; fmt: TFormat) =
+proc writeformat*(o: var Writer; c: TRune; fmt: TFormat) =
   ## Write rune `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
@@ -627,7 +630,7 @@ proc writef*(o: var Writer; c: TRune; fmt: TFormat) =
 proc abs(x: TUnsignedInt): TUnsignedInt {.inline.} = x
   ## Return the absolute value of the unsigned int `x`.
 
-proc writef*(o: var Writer; i: TInteger; fmt: TFormat) =
+proc writeformat*(o: var Writer; i: TInteger; fmt: TFormat) =
   ## Write integer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}):
@@ -690,7 +693,7 @@ proc writef*(o: var Writer; i: TInteger; fmt: TFormat) =
       write(o, ('a'.int + c.int - 10).char)
   writefill(o, fmt, alg.right)
 
-proc writef*(o: var Writer; p: pointer; fmt: TFormat) =
+proc writeformat*(o: var Writer; p: pointer; fmt: TFormat) =
   ## Write pointer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   ##
@@ -700,9 +703,9 @@ proc writef*(o: var Writer; p: pointer; fmt: TFormat) =
   if f.typ == 0.char:
     f.typ = 'x'
     f.baseprefix = true
-  writef(o, add, cast[uint](p), f)
+  writeformat(o, add, cast[uint](p), f)
 
-proc writef*(o: var Writer; x: TReal; fmt: TFormat) =
+proc writeformat*(o: var Writer; x: TReal; fmt: TFormat) =
   ## Write real number `x` according to format `fmt` using output
   ## object `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
@@ -806,7 +809,7 @@ proc writef*(o: var Writer; x: TReal; fmt: TFormat) =
   if fmt.typ == ftPercent: write(o, '%')
   writefill(o, fmt, alg.right)
 
-proc writef*(o: var Writer; ary: openarray[any]; fmt: TFormat) =
+proc writeformat*(o: var Writer; ary: openarray[any]; fmt: TFormat) =
   ## Write array `ary` according to format `fmt` using output object
   ## `o` and output function `add`.
   if ary.len == 0: return
@@ -826,19 +829,44 @@ proc writef*(o: var Writer; ary: openarray[any]; fmt: TFormat) =
     else:
       nxtfmt.arysep = ""
       sep = fmt.arysep.substr(1)
-  writef(o, ary[0], nxtfmt)
+  writeformat(o, ary[0], nxtfmt)
   for i in 1..ary.len-1:
     for c in sep: write(o, c)
-    writef(o, ary[i], nxtfmt)
+    writeformat(o, ary[i], nxtfmt)
 
-proc write(s: var string; c: char) =
-  s.add(c)
+proc addformat*(o: var Writer; x; fmt: TFormat = DefaultFmt) {.inline.} =
+  ## Write `x` formatted with `fmt` to `o`.
+  writeformat(o, x, fmt)
+
+proc addformat*(o: var Writer; x; fmt: string) {.inline.} =
+  ## The same as `addformat(o, x, parse(fmt))`.
+  addformat(o, x, fmt.parse)
+
+proc addformat*(o: var string; x: string) {.inline.} =
+  ## Write `x` to `o`. This is a fast specialized version for
+  ## appending unformatted strings.
+  add(o, x)
+
+proc addformat*(f: TFile; x: string) {.inline.} =
+  ## Write `x` to `f`. This is a fast specialized version for
+  ## writing unformatted strings to a file.
+  write(f, x)
+
+proc addformat*(f: TFile; x; fmt: TFormat = DefaultFmt) {.inline.} =
+  ## Write `x` to file `f` using format `fmt`.
+  var g = f
+  writeformat(g, x, fmt)
+
+proc addformat*(f: TFile; x; fmt: string) {.inline.} =
+  ## Write `x` to file `f` using format string `fmt`. This is the same
+  ## as `addformat(f, x, parse(fmt))`
+  addformat(f, x, parse(fmt))
 
 proc format*(x; fmt: TFormat): string =
   ## Return `x` formatted as a string according to format `fmt`.
   var ret = ""
-  writef(ret, x, fmt)
-  result = ret
+  addformat(ret, x, fmt)
+  result.shallowcopy ret
 
 proc format*(x; fmt: string): string =
   ## Return `x` formatted as a string according to format string `fmt`.
@@ -928,44 +956,6 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
         fmtpart.fmt = m[3]
     result.add(fmtpart)
     pos = clpos + 1
-
-proc addformat*(s: var string; x: string) =
-  ## Add a literal string `x` to string `s`.
-  ##
-  ## This function simply calls `add(s, x)`.
-  add(s, x)
-
-proc addformat*(s: var string; x; fmt: TFormat) =
-  ## Add `x` formatted according to `fmt` to string `s`.
-  ##
-  ## This is equivalent to `addformat(s, fmt(fmt, x))` but uses the
-  ## `writef` functions directly.
-  writef(s, x, fmt)
-
-proc addformat*(f: TFile; x: string) {.inline.} =
-  ## Add `x` formatted according to `fmt` to string `s`.
-  ##
-  ## This is equivalent to `addformat(f, fmt(fmt, x))` but uses the
-  ## `writef` functions directly.
-  write(f, x)
-
-proc addformat*(f: TFile; x; fmt: TFormat) {.inline.} =
-  ## Add `x` formatted according to `fmt` to string `s`.
-  ##
-  ## This is equivalent to `addformat(f, fmt(fmt, x))` but uses the
-  ## `writef` functions directly.
-  var fi = f
-  writef(fi, x, fmt)
-
-proc addformat*(o: var Writer; x) {.inline.} =
-  ## Add `x` formatted according to the default format to writer `o`.
-  addformat(o, x, DefaultFmt)
-
-proc addformat*(o: var Writer; x; fmt: string) {.inline.} =
-  ## Add `x` formatted according to format string `fmt` to object `o`.
-  ##
-  ## This is equivalent to `addformat(o, x, parse(fmt))`.
-  addformat(o, x, parse(fmt))
 
 proc literal(s: string): PNimrodNode {.compiletime, nosideeffect.} =
   ## Return the nimrod literal of string `s`. This handles the case if
