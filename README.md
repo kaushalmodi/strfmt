@@ -9,5 +9,5 @@ Documentation
 =============
 
 The module is described in the
-[reference documentation](https://lyro.bitbucket.org/strfmt).
+[reference documentation](http://lyro.bitbucket.org/strfmt).
 
