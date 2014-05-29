@@ -842,10 +842,10 @@ proc addformat*(o: var Writer; x; fmt: string) {.inline.} =
   ## The same as `addformat(o, x, parse(fmt))`.
   addformat(o, x, fmt.parse)
 
-proc addformat*(o: var string; x: string) {.inline.} =
-  ## Write `x` to `o`. This is a fast specialized version for
+proc addformat*(s: var string; x: string) {.inline.} =
+  ## Write `x` to `s`. This is a fast specialized version for
   ## appending unformatted strings.
-  add(o, x)
+  add(s, x)
 
 proc addformat*(f: TFile; x: string) {.inline.} =
   ## Write `x` to `f`. This is a fast specialized version for
