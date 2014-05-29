@@ -369,10 +369,11 @@ import pegs
 type
   EFormat* = object of EBase ## Error in the format string.
 
-  TWrite*[T] = proc (o: var T; c: char)
-    ## Generic function to output a character `c` to some output
-    ## object `o`. The functions `writef` will end up calling `add(o,
-    ## c)` for each character to be written.
+  Writer* = generic W
+    ## Writer to output a character `c`.
+    block:
+      var x: W
+      write(x, char)
 
   TFmtAlign* = enum ## Format alignment
     faDefault  ## default for given format type
@@ -549,7 +550,7 @@ proc getalign*(fmt: TFormat; defalign: TFmtAlign; slen: int) : tuple[left, right
       result.right = fmt.width - slen - result.left
     else: discard
 
-proc writefill[Obj](o: var Obj; add: TWrite[Obj]; fmt: TFormat; n: int; signum: int = 0) =
+proc writefill(o: var Writer; fmt: TFormat; n: int; signum: int = 0) =
   ## Write characters for filling. This function also writes the sign
   ## of a numeric format and handles the padding alignment
   ## accordingly.
@@ -565,23 +566,23 @@ proc writefill[Obj](o: var Obj; add: TWrite[Obj]; fmt: TFormat; n: int; signum: 
   ## `signum`
   ##   the sign of the number to be written, < 0 negative, > 0 positive, = 0 zero
   if fmt.align == faPadding and signum != 0:
-    if signum < 0: add(o, '-')
-    elif fmt.sign == fsPlus: add(o, '+')
-    elif fmt.sign == fsSpace: add(o, ' ')
+    if signum < 0: write(o, '-')
+    elif fmt.sign == fsPlus: write(o, '+')
+    elif fmt.sign == fsSpace: write(o, ' ')
 
   if fmt.fill == nil:
-    for i in 1..n: add(o, ' ')
+    for i in 1..n: write(o, ' ')
   else:
     for i in 1..n:
       for c in fmt.fill:
-        add(o, c)
+        write(o, c)
 
   if fmt.align != faPadding and signum != 0:
-    if signum < 0: add(o, '-')
-    elif fmt.sign == fsPlus: add(o, '+')
-    elif fmt.sign == fsSpace: add(o, ' ')
+    if signum < 0: write(o, '-')
+    elif fmt.sign == fsPlus: write(o, '+')
+    elif fmt.sign == fsSpace: write(o, ' ')
 
-proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
+proc writef*(o: var Writer; s: string; fmt: TFormat) =
   ## Write string `s` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftStr, ftDefault}):
@@ -590,15 +591,15 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; s: string; fmt: TFormat) =
   # compute alignment
   let len = if fmt.precision < 0: runelen(s) else: min(runelen(s), fmt.precision)
   var alg = getalign(fmt, faLeft, len)
-  writefill(o, add, fmt, alg.left)
+  writefill(o, fmt, alg.left)
   var pos = 0
   for i in 0..len-1:
     let rlen = runeLenAt(s, pos)
-    for j in pos..pos+rlen-1: add(o, s[j])
+    for j in pos..pos+rlen-1: write(o, s[j])
     pos += rlen
-  writefill(o, add, fmt, alg.right)
+  writefill(o, fmt, alg.right)
 
-proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: char; fmt: TFormat) =
+proc writef*(o: var Writer; c: char; fmt: TFormat) =
   ## Write character `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
@@ -606,11 +607,11 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: char; fmt: TFormat) =
 
   # compute alignment
   var alg = getalign(fmt, faLeft, 1)
-  writefill(o, add, fmt, alg.left)
-  add(o, c)
-  writefill(o, add, fmt, alg.right)
+  writefill(o, fmt, alg.left)
+  write(o, c)
+  writefill(o, fmt, alg.right)
 
-proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: TRune; fmt: TFormat) =
+proc writef*(o: var Writer; c: TRune; fmt: TFormat) =
   ## Write rune `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
@@ -618,15 +619,15 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; c: TRune; fmt: TFormat) =
 
   # compute alignment
   var alg = getalign(fmt, faLeft, 1)
-  writefill(o, add, fmt, alg.left)
+  writefill(o, fmt, alg.left)
   let s = c.toUTF8
-  for c in s: add(o, c)
-  writefill(o, add, fmt, alg.right)
+  for c in s: write(o, c)
+  writefill(o, fmt, alg.right)
 
 proc abs(x: TUnsignedInt): TUnsignedInt {.inline.} = x
   ## Return the absolute value of the unsigned int `x`.
 
-proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
+proc writef*(o: var Writer; i: TInteger; fmt: TFormat) =
   ## Write integer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}):
@@ -663,18 +664,18 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
     len.inc
 
   var alg = getalign(fmt, faRight, len)
-  writefill(o, add, fmt, alg.left, if i >= 0.TInteger: 1 else: -1)
+  writefill(o, fmt, alg.left, if i >= 0.TInteger: 1 else: -1)
   if fmt.baseprefix:
     case fmt.typ
     of ftBin:
-      add(o, '0')
-      add(o, 'b')
+      write(o, '0')
+      write(o, 'b')
     of ftOct:
-      add(o, '0')
-      add(o, 'o')
+      write(o, '0')
+      write(o, 'o')
     of ftHex:
-      add(o, '0')
-      add(o, 'x')
+      write(o, '0')
+      write(o, 'x')
     else:
       raise newException(EFormat, "# only allowed with b, o, x or X")
   while ilen > 0:
@@ -682,14 +683,14 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; i: TInteger; fmt: TFormat) =
     let c = irev mod base
     irev = irev div base
     if c < 10:
-      add(o, ('0'.int + c.int).char)
+      write(o, ('0'.int + c.int).char)
     elif fmt.upcase:
-      add(o, ('A'.int + c.int - 10).char)
+      write(o, ('A'.int + c.int - 10).char)
     else:
-      add(o, ('a'.int + c.int - 10).char)
-  writefill(o, add, fmt, alg.right)
+      write(o, ('a'.int + c.int - 10).char)
+  writefill(o, fmt, alg.right)
 
-proc writef*[Obj](o: var Obj; add: TWrite[Obj]; p: pointer; fmt: TFormat) =
+proc writef*(o: var Writer; p: pointer; fmt: TFormat) =
   ## Write pointer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   ##
@@ -701,7 +702,7 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; p: pointer; fmt: TFormat) =
     f.baseprefix = true
   writef(o, add, cast[uint](p), f)
 
-proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
+proc writef*(o: var Writer; x: TReal; fmt: TFormat) =
   ## Write real number `x` according to format `fmt` using output
   ## object `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
@@ -783,29 +784,29 @@ proc writef*[Obj](o: var Obj; add: TWrite[Obj]; x: TReal; fmt: TFormat) =
     len += 1 + frlen - frbeg # decimal point and fractional string
 
   let alg = getalign(fmt, faRight, len)
-  writefill(o, add, fmt, alg.left, if x > 0: 1 else: -1)
-  for i in (numlen-1).countdown(0): add(o, numstr[i])
+  writefill(o, fmt, alg.left, if x > 0: 1 else: -1)
+  for i in (numlen-1).countdown(0): write(o, numstr[i])
   if frbeg < frlen:
-    add(o, '.')
-    for i in (frlen-1).countdown(frbeg): add(o, frstr[i])
+    write(o, '.')
+    for i in (frlen-1).countdown(frbeg): write(o, frstr[i])
   if fmt.typ in {ftSci} or (fmt.typ in {ftGen, ftDefault} and exp != 0):
-    add(o, if fmt.upcase: 'E' else: 'e')
+    write(o, if fmt.upcase: 'E' else: 'e')
     if exp >= 0:
-      add(o, '+')
+      write(o, '+')
     else:
-      add(o, '-')
+      write(o, '-')
       exp = -exp
     if exp < 10:
-      add(o, '0')
-      add(o, ('0'.int + exp).char)
+      write(o, '0')
+      write(o, ('0'.int + exp).char)
     else:
       while exp > 0:
-        add(o, ('0'.int + exp mod 10).char)
+        write(o, ('0'.int + exp mod 10).char)
         exp = exp div 10
-  if fmt.typ == ftPercent: add(o, '%')
-  writefill(o, add, fmt, alg.right)
+  if fmt.typ == ftPercent: write(o, '%')
+  writefill(o, fmt, alg.right)
 
-proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TFormat) =
+proc writef*[T](o: var Writer; ary: openarray[T]; fmt: TFormat) =
   ## Write array `ary` according to format `fmt` using output object
   ## `o` and output function `add`.
   if ary.len == 0: return
@@ -825,15 +826,19 @@ proc writef*[Obj,T](o: var Obj; add: TWrite[Obj]; ary: openarray[T]; fmt: TForma
     else:
       nxtfmt.arysep = ""
       sep = fmt.arysep.substr(1)
-  writef(o, add, ary[0], nxtfmt)
+  writef(o, ary[0], nxtfmt)
   for i in 1..ary.len-1:
-    for c in sep: add(o, c)
-    writef(o, add, ary[i], nxtfmt)
+    for c in sep: write(o, c)
+    writef(o, ary[i], nxtfmt)
+
+proc write(s: var string; c: char) =
+  s.add(c)
 
 proc format*[T](x: T; fmt: TFormat): string =
   ## Return `x` formatted as a string according to format `fmt`.
-  result = ""
-  writef(result, proc (o: var string; c: char) = add(o, c), x, fmt)
+  var ret = ""
+  writef(ret, x, fmt)
+  result = ret
 
 proc format*[T](x: T; fmt: string): string =
   ## Return `x` formatted as a string according to format string `fmt`.
@@ -924,26 +929,25 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
     result.add(fmtpart)
     pos = clpos + 1
 
-proc addformat(s: var string; x: string): var string {.inline, discardable.} =
+proc addformat*(s: var string; x: string) =
   ## Add a literal string `x` to string `s`.
   ##
   ## This function simply calls `add(s, x)`.
   add(s, x)
-  result = s
 
-proc addformat*[T](s: var string; x: T; fmt: TFormat): var string {.inline, discardable.} =
+proc addformat*[T](s: var string; x: T; fmt: TFormat) =
   ## Add `x` formatted according to `fmt` to string `s`.
   ##
   ## This is equivalent to `addformat(s, fmt(fmt, x))` but uses the
   ## `writef` functions directly.
-  writef(s, proc (o: var string; c: char) = o.add(c), x, fmt)
-  result = s
+  writef(s, x, fmt)
 
-proc addformat*[T](s: var string; x: T; fmt: string): var string {.inline, discardable.} =
-  ## Add `x` formatted according to format string `fmt` to string `s`.
+proc addformat*(f: TFile; x: string) {.inline.} =
+  ## Add `x` formatted according to `fmt` to string `s`.
   ##
-  ## This is equivalent to `addformat(s, x, parse(fmt))`.
-  result = addformat(s, x, parse(fmt))
+  ## This is equivalent to `addformat(f, fmt(fmt, x))` but uses the
+  ## `writef` functions directly.
+  write(f, x)
 
 proc addformat*[T](f: TFile; x: T; fmt: TFormat) {.inline.} =
   ## Add `x` formatted according to `fmt` to string `s`.
@@ -951,9 +955,9 @@ proc addformat*[T](f: TFile; x: T; fmt: TFormat) {.inline.} =
   ## This is equivalent to `addformat(f, fmt(fmt, x))` but uses the
   ## `writef` functions directly.
   var fi = f
-  writef(fi, proc(o: var TFile; c: char) = o.write(c), x, fmt)
+  writef(fi, x, fmt)
 
-proc addformat*[Obj, T](o: Obj; x: T; fmt: string): var string {.inline.} =
+proc addformat*[Obj, T](o: var Obj; x: T; fmt: string) {.inline.} =
   ## Add `x` formatted according to format string `fmt` to object `o`.
   ##
   ## This is equivalent to `addformat(o, x, parse(fmt))`.
