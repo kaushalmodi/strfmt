@@ -434,7 +434,7 @@ const
   round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
     ## Rounding offset for floating point numbers up to precision 8.
 
-proc write(s: var string; c: char) =
+proc write*(s: var string; c: char) =
   s.add(c)
 
 proc has(c: TCaptures; i: range[0..pegs.maxsubpatterns-1]): bool {.nosideeffect, inline.} =
