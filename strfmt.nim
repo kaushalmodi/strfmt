@@ -125,6 +125,7 @@
 ##   ``g``, ``G``                  The number of significant digits written (i.e. the
 ##                                 number of overall digits).
 ##   ============================= ==========
+
 ##   Note that in all cases the decimal point is printed if and only
 ##   if there is at least one digit following the point.
 ##
