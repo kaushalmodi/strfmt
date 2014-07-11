@@ -740,9 +740,10 @@ proc writeformat*(o: var Writer; x: TReal; fmt: TFormat) =
   if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
     raise newException(EFormat, "Integer variable must of one of the following types: f,F,e,E,g,G,%")
 
+  let positive = x >= 0 and classify(x) != fcNegZero
   var len = 0
 
-  if fmt.sign != fsMinus or x < 0: len.inc
+  if fmt.sign != fsMinus or not positive: len.inc
 
   var prec = if fmt.precision < 0: DefaultPrec else: fmt.precision
   var y = abs(x)
@@ -816,7 +817,7 @@ proc writeformat*(o: var Writer; x: TReal; fmt: TFormat) =
     len += 1 + frlen - frbeg # decimal point and fractional string
 
   let alg = getalign(fmt, faRight, len)
-  writefill(o, fmt, alg.left, if x > 0: 1 else: -1)
+  writefill(o, fmt, alg.left, if positive: 1 else: -1)
   for i in (numlen-1).countdown(0): write(o, numstr[i])
   if frbeg < frlen:
     write(o, '.')
@@ -1273,6 +1274,52 @@ when isMainModule:
   doassert NegInf.format(".^-8") == "..-inf.."
   doassert NegInf.format("0=-8") == "-0000inf"
   doassert NegInf.format("-08") == "-0000inf"
+
+  doassert 0.0.format(".<8") == "0......."
+  doassert 0.0.format(".>8") == ".......0"
+  doassert 0.0.format(".^8") == "...0...."
+  doassert 0.0.format(".=8") == ".......0"
+  doassert 0.0.format(".< 8") == " 0......"
+  doassert 0.0.format(".> 8") == "...... 0"
+  doassert 0.0.format(".^ 8") == "... 0..."
+  doassert 0.0.format(".= 8") == " ......0"
+  doassert 0.0.format(".<+8") == "+0......"
+  doassert 0.0.format(".>+8") == "......+0"
+  doassert 0.0.format(".^+8") == "...+0..."
+  doassert 0.0.format(".=+8") == "+......0"
+  doassert 0.0.format(".<-8") == "0......."
+  doassert 0.0.format("0>-8") == "00000000"
+  doassert 0.0.format(".^-8") == "...0...."
+  doassert 0.0.format("0=-8") == "00000000"
+  doassert 0.0.format("-08") == "00000000"
+
+  var zero = 0.0
+  var negzero = zero * -1
+
+  doassert negzero.format("") == "-0"
+  doassert negzero.format("8") == "      -0"
+  doassert negzero.format("<8") == "-0      "
+  doassert negzero.format(">8") == "      -0"
+  doassert negzero.format("^8") == "   -0   "
+  doassert negzero.format("=8") == "-      0"
+
+  doassert negzero.format(".<8") == "-0......"
+  doassert negzero.format(".>8") == "......-0"
+  doassert negzero.format(".^8") == "...-0..."
+  doassert negzero.format(".=8") == "-......0"
+  doassert negzero.format(".< 8") == "-0......"
+  doassert negzero.format(".> 8") == "......-0"
+  doassert negzero.format(".^ 8") == "...-0..."
+  doassert negzero.format(".= 8") == "-......0"
+  doassert negzero.format(".<+8") == "-0......"
+  doassert negzero.format(".>+8") == "......-0"
+  doassert negzero.format(".^+8") == "...-0..."
+  doassert negzero.format(".=+8") == "-......0"
+  doassert negzero.format(".<-8") == "-0......"
+  doassert negzero.format("0>-8") == "000000-0"
+  doassert negzero.format(".^-8") == "...-0..."
+  doassert negzero.format("0=-8") == "-0000000"
+  doassert negzero.format("-08") == "-0000000"
 
   doassert 123.456.format("f") == "123.456000"
   doassert 123.456.format(".2f") == "123.46"
