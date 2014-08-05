@@ -225,13 +225,12 @@
 ## two elements of the second level the separator string `", "` is
 ## printed. Because the elements of the second level array are
 ## integers, the format string "02d" applies to all of them. Thus,
-## each number is printed with a leading 0. Each two numbers of the
-## same inner array are separated by a command and a space. After the
-## 4 has been printed the complete first element of the outer array
-## (namely in array `[2, 3, 4]`) has been printed, so the separator
-## string of the outer level follows, in this case a semicolon and a
-## space. Finally the second array `[6, 7, 8]` is printed with the
-## separator ", " between each two elements.
+## each number is printed with a leading 0. After the 4 has been
+## printed the complete first element of the outer array (namely in
+## array `[2, 3, 4]`) has been printed, so the separator string of the
+## outer level follows, in this case a semicolon and a space. Finally
+## the second array `[6, 7, 8]` is printed with the separator ", "
+## between each two elements.
 
 ## A string containing formatted values: `fmt`
 ## -------------------------------------------
@@ -357,7 +356,7 @@
 ##
 ## Writing formatted output to a file: `writefmt`
 ## ----------------------------------------------
-## The `writefmt` familiy of macros are convenience helpers to write
+## The `writefmt` family of macros are convenience helpers to write
 ## formatted output to a file. A call
 ##
 ## .. code-block:: nimrod
@@ -370,14 +369,18 @@
 ##
 ## However, the former avoids the creation of temporary intermediate
 ## strings (the variable `ret` in the example above) but writes
-## directly to the output file. The `printfmt` familiy of functions
+## directly to the output file. The `printfmt` family of functions
 ## does the same but writes to `stdout`.
 ##
 ## Adding new formatting functions
 ## -------------------------------
 ## In order to add a new formatting function for a type `T` one has to
-## define a new function `writeformat(o: var Writer; x: T; fmt:
-## TFormat)`. The following example defines a formatting function for
+## define a new function
+##
+## .. code-block:: nimrod
+##   proc writeformat(o: var Writer; x: T; fmt: TFormat)
+##
+## The following example defines a formatting function for
 ## a simple 2D-point data type. The format specification is used for
 ## the printing the two coordinate values.
 ##
