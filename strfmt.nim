@@ -37,7 +37,7 @@
 ## 1. the `format` functions to render a single value as a string,
 ## 2. the `fmt` macro to construct a string containing several
 ##    formatted values
-## 3. the `writefmt` and `printfmt` familiy of macros to write a
+## 3. the `writefmt` and `printfmt` family of macros to write a
 ##    formatted string to a file and `stdout`, respectively
 ##
 ## These functions are described in the following sections.
