@@ -1130,6 +1130,60 @@ macro printlnfmt*(fmtstr: string{lit}; args: varargs[expr]): expr =
   ## The same as `writelnfmt(stdout, fmtstr, args...)`.
   result = addfmtfmt($fmtstr & "\n", args, bindsym"stdout")
 
+proc geninterp(fmtstr: string): PNimrodNode {.compileTime.} =
+  ## Generate `fmt` expression for interpolated string `fmtstr`.
+  var pos = 0
+  var fstr = ""
+  var args = newseq[PNimrodNode]()
+  var loop = true
+  while loop and pos < fmtstr.len:
+    let n = fmtstr.skipUntil({'$', '{', '}'}, pos)
+    fstr.add(fmtstr.substr(pos, pos+n-1))
+    pos += n
+    if pos >= fmtstr.len:
+      loop = false
+      break
+    elif fmtstr[pos] == '{':
+      pos += 1
+      fstr.add("{{")
+    elif fmtstr[pos] == '}':
+      pos += 1
+      fstr.add("}}")
+    else: # fmtstr[pos] == '$'
+      pos += 1
+      if fmtstr[pos] == '$':
+        pos += 1
+        fstr.add('$')
+      elif fmtstr[pos] == '{':
+        pos += 1
+        let beg = pos
+        pos += fmtstr.skipUntil({':', '}'}, pos)
+        let e = parseExpr(fmtstr.substr(beg, pos-1))
+        args.add(e)
+        if fmtstr[pos] == ':':
+          var fmtarg: string
+          pos += fmtstr.parseUntil(fmtarg, '}', pos)
+          pos += 1
+          fstr.add("{")
+          fstr.add(fmtarg)
+          fstr.add("}")
+        else:
+          pos += 1
+          fstr.add("{}")
+      else:
+        error("Invalid format string: expected $ or { after $")
+  result = newCall(bindsym"fmt", fstr.newLit)
+  for arg in args:
+    result.add(arg)
+
+macro interp*(fmtstr: string{lit}): expr =
+  ## Interpolate `fmtstr` with expressions.
+  result = geninterp(fmtstr.strval)
+
+macro `$$`*(fmtstr: string{lit}): expr =
+  ## Interpolate `fmtstr` with expressions.
+  result = geninterp(fmtstr.strval)
+
 when isMainModule:
   # string with 's'
   doassert "hello".format("s") == "hello"
@@ -1375,3 +1429,15 @@ when isMainModule:
 
   var x = 0
   doassert "{0} {0}".fmt((x.inc; x)) == "1 1"
+
+  doassert($$"interpolate ${32} == ${4.2}" == "interpolate 32 == 4.2")
+  block:
+    let x = 32
+    let y = 8
+    doassert($$"${x} + ${y} == ${x + y}" == "32 + 8 == 40")
+  block:
+    let x = 32
+    let y = 8
+    doassert($$"max(${x}, ${y}) == ${max(x,y)}" == "max(32, 8) == 32")
+  doassert(interp"formatted: ${4:.^5}" == "formatted: ..4..")
+
