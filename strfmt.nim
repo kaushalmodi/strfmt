@@ -39,8 +39,8 @@
 ##    formatted values
 ## 3. the `writefmt` and `printfmt` family of macros to write a
 ##    formatted string to a file and `stdout`, respectively
-## 4. the `interp` and `$$` string **interpolation** functions to
-##    render expressions contained in the string itself
+## 4. the `interp` and `$$` string **interpolation** macros to
+##    render expressions embedded in the string itself
 ##
 ## These functions are described in the following sections.
 ##
@@ -333,7 +333,7 @@
 ## into a sequence of commands that build the resulting string. The
 ## format specifications are parsed and transformed into a `TFormat`
 ## structure at compile time so that no overhead remains at runtime.
-## For instances, the following expression
+## For instance, the following expression
 ##
 ##   .. code-block:: nimrod
 ##     "This {} the number {:_^3} example".fmt("is", 1)
