@@ -397,6 +397,7 @@
 ##     write(o, ')')
 
 import macros
+from strutils import IdentStartChars
 import parseutils
 import unicode
 import math
@@ -935,7 +936,7 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
   ## refering to the arg-th argument and an additional field or array
   ## index. The format string is a string accepted by `parse`.
   let subpeg = sequence(capture(*digits()),
-                          capture(?sequence(charSet({'.'}), identStartChars(), *identChars())),
+                          capture(?sequence(charSet({'.'}), pegs.identStartChars(), *identChars())),
                           capture(?sequence(charSet({'['}), +digits(), charSet({']'}))),
                           capture(?sequence(charSet({':'}), *pegs.any())))
   result = @[]
@@ -1142,7 +1143,6 @@ proc geninterp(fmtstr: string): PNimrodNode {.compileTime.} =
     pos += n
     if pos >= fmtstr.len:
       loop = false
-      break
     elif fmtstr[pos] == '{':
       pos += 1
       fstr.add("{{")
@@ -1154,6 +1154,11 @@ proc geninterp(fmtstr: string): PNimrodNode {.compileTime.} =
       if fmtstr[pos] == '$':
         pos += 1
         fstr.add('$')
+      elif fmtstr[pos] in strutils.IdentStartChars:
+        var ident: string
+        pos += fmtstr.parseIdent(ident, pos)
+        args.add(parseExpr(ident))
+        fstr.add("{}")
       elif fmtstr[pos] == '{':
         pos += 1
         let beg = pos
@@ -1438,6 +1443,6 @@ when isMainModule:
   block:
     let x = 32
     let y = 8
-    doassert($$"max(${x}, ${y}) == ${max(x,y)}" == "max(32, 8) == 32")
+    doassert($$"max($x, $y) == ${max(x,y)}" == "max(32, 8) == 32")
   doassert(interp"formatted: ${4:.^5}" == "formatted: ..4..")
 
