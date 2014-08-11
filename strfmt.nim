@@ -1513,8 +1513,3 @@ when isMainModule:
     let y = 8
     doassert($$"max($x, $y) == ${max(x,y)}" == "max(32, 8) == 32")
   doassert(interp"formatted: ${4:.^5}" == "formatted: ..4..")
-
-block:
-  let x = 2
-  let y = 1.0/3.0
-  echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
