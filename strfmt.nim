@@ -113,7 +113,7 @@
 ##   ignored.
 ##
 ## `width`
-##   The minimal with of the resulting string. The result string is
+##   The minimal width of the resulting string. The result string is
 ##   padded with extra characters (according the `align` field) until
 ##   at least `width` characters have been written.
 ##
@@ -132,7 +132,7 @@
 ##   ``g``, ``G``                  The number of significant digits written (i.e. the
 ##                                 number of overall digits).
 ##   ============================= ==========
-
+##
 ##   Note that in all cases the decimal point is printed if and only
 ##   if there is at least one digit following the point.
 ##
@@ -190,10 +190,11 @@
 ##         format ``f`` and followed by a percent sign.
 ##   ===== ===========================================================
 ##
-## `array_sep` If an array is formatted, the format specifications
-##   above apply to each element of the array. The elements are
-##   printed in succession separated by a separator string. If the
-##   array is nested then this applies recursively.
+## `array_sep`
+##   If an array is formatted, the format specifications above apply
+##   to each element of the array. The elements are printed in
+##   succession separated by a separator string. If the array is
+##   nested then this applies recursively.
 ##
 ##   The `array_sep` field specifies the separator string for all
 ##   levels of a nested array. The first character after the `a` is
