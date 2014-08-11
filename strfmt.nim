@@ -39,6 +39,8 @@
 ##    formatted values
 ## 3. the `writefmt` and `printfmt` family of macros to write a
 ##    formatted string to a file and `stdout`, respectively
+## 4. the `interp` and `$$` string **interpolation** functions to
+##    render expressions contained in the string itself
 ##
 ## These functions are described in the following sections.
 ##
@@ -325,7 +327,6 @@
 ##     A=[     1,      2,      3;
 ##             4,      5,      6]
 ##
-##
 ## How `fmt` works
 ## ---------------
 ## The `fmt` macros transforms the format string and its arguments
@@ -353,6 +354,72 @@
 ## (Note that this is a statement-list-expression). The functions
 ## `addformat` are defined within `strfmt` and add formatted output to
 ## the string `ret`.
+##
+## String interpolation `interp`
+## -----------------------------
+##
+## ------
+##
+## **Warning:** This feature is highly experimental. It has (at least)
+## the following flaws:
+##
+## - embedded expressions *must* be correct expressions, error
+##   checking is very weak and no useful error message is generated
+## - the embedded expressions *must not* contain at closing brace
+##   ``}`` or a colon ``:``, because both would be regarded as
+##   delimiter
+##
+## ------
+##
+## The `interp` macro interpolates a string with embedded
+## expressions. If the string to be interpolated contains a `$`, then
+## the following characters are interpreted as expressions.
+##
+##   .. code-block:: nimrod
+##
+##     let x = 2
+##     let y = 1.0/3.0
+##     echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
+##
+## The macro `interp` supports the following interpolations
+## expressions:
+##
+##   ====================== ===========================================
+##   String                 Meaning
+##   ---------------------- -------------------------------------------
+##   ``$<ident>``           The value of the variable denoted by
+##                          ``<ident>`` is substituted into the string
+##                          according to the default format for the
+##                          respective type.
+##   ``${<expr>}``          The expression ``<expr>`` is evaluated and
+##                          its result is substituted into the string
+##                          according to the default format of its
+##                          type.
+##   ``${<expr>:<format>}`` The expression ``<expr>`` is evaluated and
+##                          its result is substituted into the string
+##                          according to the format string
+##                          ``<format>``. The format string has the
+##                          same structure as for the `format`
+##                          function.
+##   ``$$``                 A literal ``$``
+##   ====================== ===========================================
+##
+##
+## How `interp` works
+## ------------------
+## The macro `interp` is quite simple. A string with embedded
+## expressions is simply transformed to an equivalent expression using
+## the `fmt` macro:
+##
+##   .. code-block:: nimrod
+##
+##     echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
+##
+## is transformed to
+##
+##   .. code-block:: nimrod
+##
+##     echo fmt("Equation: {} + {:.2f} == {}", x, y, x.float + y)
 ##
 ## Writing formatted output to a file: `writefmt`
 ## ----------------------------------------------
@@ -1446,3 +1513,7 @@ when isMainModule:
     doassert($$"max($x, $y) == ${max(x,y)}" == "max(32, 8) == 32")
   doassert(interp"formatted: ${4:.^5}" == "formatted: ..4..")
 
+block:
+  let x = 2
+  let y = 1.0/3.0
+  echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
