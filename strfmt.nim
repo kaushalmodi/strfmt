@@ -473,7 +473,7 @@ import unsigned
 import pegs
 
 type
-  EFormat* = object of EBase ## Error in the format string.
+  EFormat* = object of Exception ## Error in the format string.
 
   Writer* = generic W
     ## Writer to output a character `c`.
@@ -543,23 +543,23 @@ const
 proc write*(s: var string; c: char) =
   s.add(c)
 
-proc has(c: TCaptures; i: range[0..pegs.maxsubpatterns-1]): bool {.nosideeffect, inline.} =
+proc has(c: Captures; i: range[0..pegs.MaxSubpatterns-1]): bool {.nosideeffect, inline.} =
   ## Tests whether `c` contains a non-empty capture `i`.
   let b = c.bounds(i)
   result = b.first <= b.last
 
-proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: char): char {.nosideeffect, inline.} =
+proc get(str: string; c: Captures; i: range[0..MaxSubpatterns-1]; def: char): char {.nosideeffect, inline.} =
   ## If capture `i` is non-empty return that portion of `str` casted
   ## to `char`, otherwise return `def`.
   result = if c.has(i): str[c.bounds(i).first] else: def
 
-proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: string; begoff: int = 0): string {.nosideeffect, inline.} =
+proc get(str: string; c: Captures; i: range[0..MaxSubpatterns-1]; def: string; begoff: int = 0): string {.nosideeffect, inline.} =
   ## If capture `i` is non-empty return that portion of `str` as
   ## string, otherwise return `def`.
   let b = c.bounds(i)
   result = if c.has(i): str.substr(b.first + begoff, b.last) else: def
 
-proc get(str: string; c: TCaptures; i: range[0..maxsubpatterns-1]; def: int; begoff: int = 0): int {.nosideeffect, inline.} =
+proc get(str: string; c: Captures; i: range[0..MaxSubpatterns-1]; def: int; begoff: int = 0): int {.nosideeffect, inline.} =
   ## If capture `i` is non-empty return that portion of `str`
   ## converted to int, otherwise return `def`.
   if c.has(i):
@@ -581,7 +581,7 @@ proc parse*(fmt: string): TFormat {.nosideeffect.} =
              capture(?sequence(charSet({'a'}), *pegs.any())))
   # let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
 
-  var caps: TCaptures
+  var caps: Captures
   if fmt.rawmatch(p, 0, caps) < 0:
     raise newException(EFormat, "Invalid format string")
 
@@ -720,7 +720,7 @@ proc writeformat*(o: var Writer; c: char; fmt: TFormat) =
   write(o, c)
   writefill(o, fmt, alg.right)
 
-proc writeformat*(o: var Writer; c: TRune; fmt: TFormat) =
+proc writeformat*(o: var Writer; c: Rune; fmt: TFormat) =
   ## Write rune `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
@@ -733,10 +733,10 @@ proc writeformat*(o: var Writer; c: TRune; fmt: TFormat) =
   for c in s: write(o, c)
   writefill(o, fmt, alg.right)
 
-proc abs(x: TUnsignedInt): TUnsignedInt {.inline.} = x
+proc abs(x: SomeUnsignedInt): SomeUnsignedInt {.inline.} = x
   ## Return the absolute value of the unsigned int `x`.
 
-proc writeformat*(o: var Writer; i: TInteger; fmt: TFormat) =
+proc writeformat*(o: var Writer; i: SomeInteger; fmt: TFormat) =
   ## Write integer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}):
@@ -763,7 +763,7 @@ proc writeformat*(o: var Writer; i: TInteger; fmt: TFormat) =
   var x: type(i) = abs(i)
   var irev: type(i) = 0
   var ilen = 0
-  while x > 0.TInteger:
+  while x > 0.SomeInteger:
     len.inc
     ilen.inc
     irev = irev * base + x mod base
@@ -773,7 +773,7 @@ proc writeformat*(o: var Writer; i: TInteger; fmt: TFormat) =
     len.inc
 
   var alg = getalign(fmt, faRight, len)
-  writefill(o, fmt, alg.left, if i >= 0.TInteger: 1 else: -1)
+  writefill(o, fmt, alg.left, if i >= 0.SomeInteger: 1 else: -1)
   if fmt.baseprefix:
     case fmt.typ
     of ftBin:
@@ -811,7 +811,7 @@ proc writeformat*(o: var Writer; p: pointer; fmt: TFormat) =
     f.baseprefix = true
   writeformat(o, add, cast[uint](p), f)
 
-proc writeformat*(o: var Writer; x: TReal; fmt: TFormat) =
+proc writeformat*(o: var Writer; x: SomeReal; fmt: TFormat) =
   ## Write real number `x` according to format `fmt` using output
   ## object `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
@@ -856,8 +856,8 @@ proc writeformat*(o: var Writer; x: TReal; fmt: TFormat) =
       # shift y so that 1 <= abs(y) < 2
       var mult = 1
       for i in 1..abs(exp): mult *= 10
-      if exp > 0: y /= mult.TReal
-      elif exp < 0: y *= mult.TReal
+      if exp > 0: y /= mult.SomeReal
+      elif exp < 0: y *= mult.SomeReal
     elif fmt.typ == ftPercent:
       len += 1 # percent sign
 
@@ -868,7 +868,7 @@ proc writeformat*(o: var Writer; x: TReal; fmt: TFormat) =
     var mult = 1'i64
     for i in 1..prec: mult *= 10
     var num = y.int64
-    var fr = ((y - num.TReal) * mult.TReal).int64
+    var fr = ((y - num.SomeReal) * mult.SomeReal).int64
     # build integer part string
     while num != 0:
       numstr[numlen] = ('0'.int + (num mod 10)).char
@@ -954,26 +954,25 @@ proc addformat*(s: var string; x: string) {.inline.} =
   ## appending unformatted strings.
   add(s, x)
 
-proc addformat*(f: TFile; x: string) {.inline.} =
+proc addformat*(f: File; x: string) {.inline.} =
   ## Write `x` to `f`. This is a fast specialized version for
   ## writing unformatted strings to a file.
   write(f, x)
 
-proc addformat*(f: TFile; x; fmt: TFormat = DefaultFmt) {.inline.} =
+proc addformat*(f: File; x; fmt: TFormat = DefaultFmt) {.inline.} =
   ## Write `x` to file `f` using format `fmt`.
   var g = f
   writeformat(g, x, fmt)
 
-proc addformat*(f: TFile; x; fmt: string) {.inline.} =
+proc addformat*(f: File; x; fmt: string) {.inline.} =
   ## Write `x` to file `f` using format string `fmt`. This is the same
   ## as `addformat(f, x, parse(fmt))`
   addformat(f, x, parse(fmt))
 
 proc format*(x; fmt: TFormat): string =
   ## Return `x` formatted as a string according to format `fmt`.
-  var ret = ""
-  addformat(ret, x, fmt)
-  result.shallowcopy ret
+  result = ""
+  addformat(result, x, fmt)
 
 proc format*(x; fmt: string): string =
   ## Return `x` formatted as a string according to format string `fmt`.
@@ -1183,11 +1182,11 @@ macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   result.add(addfmtfmt($fmtstr, args, retvar))
   result.add(retvar)
 
-macro writefmt*(f: TFile; fmtstr: string; args: varargs[expr]): expr =
+macro writefmt*(f: File; fmtstr: string; args: varargs[expr]): expr =
   ## The same as `write(f, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr, args, f)
 
-macro writelnfmt*(f: TFile; fmtstr: string; args: varargs[expr]): expr =
+macro writelnfmt*(f: File; fmtstr: string; args: varargs[expr]): expr =
   ## The same as `writeln(f, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr & "\n", args, f)
 
