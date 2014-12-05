@@ -469,6 +469,7 @@ from strutils import IdentStartChars
 import parseutils
 import unicode
 import math
+import fenv
 import unsigned
 import pegs
 
