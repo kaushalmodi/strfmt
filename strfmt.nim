@@ -911,9 +911,14 @@ proc writeformat*(o: var Writer; x: TReal; fmt: TFormat) =
       write(o, '0')
       write(o, ('0'.int + exp).char)
     else:
+      var i=0
       while exp > 0:
-        write(o, ('0'.int + exp mod 10).char)
+        numstr[i] = ('0'.int + exp mod 10).char
+        i+=1
         exp = exp div 10
+      while i>0:
+        i-=1
+        write(o, numstr[i])
   if fmt.typ == ftPercent: write(o, '%')
   writefill(o, fmt, alg.right)
 
