@@ -332,7 +332,7 @@
 ## ---------------
 ## The `fmt` macros transforms the format string and its arguments
 ## into a sequence of commands that build the resulting string. The
-## format specifications are parsed and transformed into a `TFormat`
+## format specifications are parsed and transformed into a `Format`
 ## structure at compile time so that no overhead remains at runtime.
 ## For instance, the following expression
 ##
@@ -348,7 +348,7 @@
 ##      addformat(ret, "This ");
 ##      addformat(ret, arg0, DefaultFmt);
 ##      addformat(ret, " the number ");
-##      addformat(ret, arg1, TFormat(...));
+##      addformat(ret, arg1, Format(...));
 ##      addformat(ret, " example ");
 ##      ret)
 ##
@@ -446,7 +446,7 @@
 ## define a new function
 ##
 ## .. code-block:: nim
-##   proc writeformat(o: var Writer; x: T; fmt: TFormat)
+##   proc writeformat(o: var Writer; x: T; fmt: Format)
 ##
 ## The following example defines a formatting function for
 ## a simple 2D-point data type. The format specification is used for
@@ -454,9 +454,9 @@
 ##
 ## .. code-block:: nim
 ##
-##   type TPoint = tuple[x, y: float]
+##   type Point = tuple[x, y: float]
 ##
-##   proc writeformat*(o: var Writer; p: TPoint; fmt: TFormat) =
+##   proc writeformat*(o: var Writer; p: Point; fmt: Format) =
 ##     write(o, '(')
 ##     writeformat(o, p.x, fmt)
 ##     write(o, ',')
@@ -482,19 +482,19 @@ type
       var x: W
       write(x, char)
 
-  TFmtAlign* = enum ## Format alignment
+  FmtAlign* = enum ## Format alignment
     faDefault  ## default for given format type
     faLeft     ## left aligned
     faRight    ## right aligned
     faCenter   ## centered
     faPadding  ## right aligned, fill characters after sign (numbers only)
 
-  TFmtSign* = enum ## Format sign
+  FmtSign* = enum ## Format sign
     fsMinus    ## only unary minus, no reservered sign space for positive numbers
     fsPlus     ## unary minus and unary plus
     fsSpace    ## unary minus and reserved space for positive numbers
 
-  TFmtType* = enum ## Format type
+  FmtType* = enum ## Format type
     ftDefault  ## default format for given parameter type
     ftStr      ## string
     ftChar     ## character
@@ -507,23 +507,23 @@ type
     ftGen      ## real number in generic form (either fixed point or scientific)
     ftPercent  ## real number multiplied by 100 and % added
 
-  TFormat* = tuple ## Formatting information.
-    typ: TFmtType     ## format type
+  Format* = tuple ## Formatting information.
+    typ: FmtType     ## format type
     precision: int    ## floating point precision
     width: int        ## minimal width
     fill: string      ## the fill character, UTF8
-    align: TFmtAlign  ## aligment
-    sign: TFmtSign    ## sign notation
+    align: FmtAlign  ## aligment
+    sign: FmtSign    ## sign notation
     baseprefix: bool  ## whether binary, octal, hex should be prefixed by 0b, 0x, 0o
     upcase: bool      ## upper case letters in hex or exponential formats
     comma: bool       ##
     arysep: string    ## separator for array elements
 
-  TPartKind = enum pkStr, pkFmt
+  PartKind = enum pkStr, pkFmt
 
-  TPart = object
+  Part = object
     ## Information of a part of the target string.
-    case kind: TPartKind ## type of the part
+    case kind: PartKind ## type of the part
     of pkStr:
       str: string ## literal string
     of pkFmt:
@@ -534,7 +534,7 @@ type
       nested: bool ## true if the argument contains nested formats
 
 const
-  DefaultFmt*: TFormat = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil)
+  DefaultFmt*: Format = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil)
     ## Default format corresponding to the empty format string, i.e.
     ##   `x.format("") == x.format(DefaultFmt)`.
   DefaultPrec = 6 ## Default precision for floating point numbers.
@@ -568,8 +568,8 @@ proc get(str: string; c: Captures; i: range[0..MaxSubpatterns-1]; def: int; bego
   else:
     result = def
 
-proc parse*(fmt: string): TFormat {.nosideeffect.} =
-  # Converts the format string `fmt` into a `TFormat` structure.
+proc parse*(fmt: string): Format {.nosideeffect.} =
+  # Converts the format string `fmt` into a `Format` structure.
   let p =
     sequence(capture(?sequence(anyRune(), &charSet({'<', '>', '=', '^'}))),
              capture(?charSet({'<', '>', '=', '^'})),
@@ -635,7 +635,7 @@ proc parse*(fmt: string): TFormat {.nosideeffect.} =
 
   result.arysep = fmt.get(caps, 8, nil, 1)
 
-proc getalign*(fmt: TFormat; defalign: TFmtAlign; slen: int) : tuple[left, right:int] {.nosideeffect.} =
+proc getalign*(fmt: Format; defalign: FmtAlign; slen: int) : tuple[left, right:int] {.nosideeffect.} =
   ## Returns the number of left and right padding characters for a
   ## given format alignment and width of the object to be printed.
   ##
@@ -660,7 +660,7 @@ proc getalign*(fmt: TFormat; defalign: TFmtAlign; slen: int) : tuple[left, right
       result.right = fmt.width - slen - result.left
     else: discard
 
-proc writefill(o: var Writer; fmt: TFormat; n: int; signum: int = 0) =
+proc writefill(o: var Writer; fmt: Format; n: int; signum: int = 0) =
   ## Write characters for filling. This function also writes the sign
   ## of a numeric format and handles the padding alignment
   ## accordingly.
@@ -692,7 +692,7 @@ proc writefill(o: var Writer; fmt: TFormat; n: int; signum: int = 0) =
     elif fmt.sign == fsPlus: write(o, '+')
     elif fmt.sign == fsSpace: write(o, ' ')
 
-proc writeformat*(o: var Writer; s: string; fmt: TFormat) =
+proc writeformat*(o: var Writer; s: string; fmt: Format) =
   ## Write string `s` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftStr, ftDefault}):
@@ -709,7 +709,7 @@ proc writeformat*(o: var Writer; s: string; fmt: TFormat) =
     pos += rlen
   writefill(o, fmt, alg.right)
 
-proc writeformat*(o: var Writer; c: char; fmt: TFormat) =
+proc writeformat*(o: var Writer; c: char; fmt: Format) =
   ## Write character `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
@@ -721,7 +721,7 @@ proc writeformat*(o: var Writer; c: char; fmt: TFormat) =
   write(o, c)
   writefill(o, fmt, alg.right)
 
-proc writeformat*(o: var Writer; c: Rune; fmt: TFormat) =
+proc writeformat*(o: var Writer; c: Rune; fmt: Format) =
   ## Write rune `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
@@ -737,7 +737,7 @@ proc writeformat*(o: var Writer; c: Rune; fmt: TFormat) =
 proc abs(x: SomeUnsignedInt): SomeUnsignedInt {.inline.} = x
   ## Return the absolute value of the unsigned int `x`.
 
-proc writeformat*(o: var Writer; i: SomeInteger; fmt: TFormat) =
+proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
   ## Write integer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}):
@@ -800,7 +800,7 @@ proc writeformat*(o: var Writer; i: SomeInteger; fmt: TFormat) =
       write(o, ('a'.int + c.int - 10).char)
   writefill(o, fmt, alg.right)
 
-proc writeformat*(o: var Writer; p: pointer; fmt: TFormat) =
+proc writeformat*(o: var Writer; p: pointer; fmt: Format) =
   ## Write pointer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   ##
@@ -812,7 +812,7 @@ proc writeformat*(o: var Writer; p: pointer; fmt: TFormat) =
     f.baseprefix = true
   writeformat(o, add, cast[uint](p), f)
 
-proc writeformat*(o: var Writer; x: SomeReal; fmt: TFormat) =
+proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
   ## Write real number `x` according to format `fmt` using output
   ## object `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
@@ -922,7 +922,7 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: TFormat) =
   if fmt.typ == ftPercent: write(o, '%')
   writefill(o, fmt, alg.right)
 
-proc writeformat*(o: var Writer; ary: openarray[any]; fmt: TFormat) =
+proc writeformat*(o: var Writer; ary: openarray[any]; fmt: Format) =
   ## Write array `ary` according to format `fmt` using output object
   ## `o` and output function `add`.
   if ary.len == 0: return
@@ -947,7 +947,7 @@ proc writeformat*(o: var Writer; ary: openarray[any]; fmt: TFormat) =
     for c in sep: write(o, c)
     writeformat(o, ary[i], nxtfmt)
 
-proc addformat*(o: var Writer; x; fmt: TFormat = DefaultFmt) {.inline.} =
+proc addformat*(o: var Writer; x; fmt: Format = DefaultFmt) {.inline.} =
   ## Write `x` formatted with `fmt` to `o`.
   writeformat(o, x, fmt)
 
@@ -965,7 +965,7 @@ proc addformat*(f: File; x: string) {.inline.} =
   ## writing unformatted strings to a file.
   write(f, x)
 
-proc addformat*(f: File; x; fmt: TFormat = DefaultFmt) {.inline.} =
+proc addformat*(f: File; x; fmt: Format = DefaultFmt) {.inline.} =
   ## Write `x` to file `f` using format `fmt`.
   var g = f
   writeformat(g, x, fmt)
@@ -975,7 +975,7 @@ proc addformat*(f: File; x; fmt: string) {.inline.} =
   ## as `addformat(f, x, parse(fmt))`
   addformat(f, x, parse(fmt))
 
-proc format*(x; fmt: TFormat): string =
+proc format*(x; fmt: Format): string =
   ## Return `x` formatted as a string according to format `fmt`.
   result = ""
   addformat(result, x, fmt)
@@ -987,7 +987,7 @@ proc format*(x; fmt: string): string =
 proc format*(x): string {.inline.} =
   ## Return `x` formatted as a string according to the default format.
   ## The default format corresponds to an empty format string.
-  var fmt {.global.} : TFormat
+  var fmt {.global.} : Format
   result = format(x, fmt)
 
 proc unquoted(s: string): string {.compileTime.} =
@@ -999,7 +999,7 @@ proc unquoted(s: string): string {.compileTime.} =
     result.add(s.substr(pos, nxt))
     pos = nxt + 2
 
-proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
+proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
   ## Split format string `s` into a sequence of "parts".
   ##
 
@@ -1019,17 +1019,17 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
     # reached the end
     if oppos >= s.len:
       if pos < s.len:
-        result.add(TPart(kind: pkStr, str: s.substr(pos).unquoted))
+        result.add(Part(kind: pkStr, str: s.substr(pos).unquoted))
       return
     # skip double
     if oppos + 1 < s.len and s[oppos] == s[oppos+1]:
-      result.add(TPart(kind: pkStr, str: s.substr(pos, oppos)))
+      result.add(Part(kind: pkStr, str: s.substr(pos, oppos)))
       pos = oppos + 2
       continue
     if s[oppos] == '}':
       error("Single '}' encountered in format string")
     if oppos > pos:
-      result.add(TPart(kind: pkStr, str: s.substr(pos, oppos-1).unquoted))
+      result.add(Part(kind: pkStr, str: s.substr(pos, oppos-1).unquoted))
     # find matching closing }
     var lvl = 1
     var nested = false
@@ -1048,7 +1048,7 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
       else:
         lvl.dec
     let clpos = pos
-    var fmtpart = TPart(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), field: nil, index: int.high, nested: nested)
+    var fmtpart = Part(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), field: nil, index: int.high, nested: nested)
     if fmtpart.fmt.len > 0:
       var m: array[0..3, string]
       if not fmtpart.fmt.match(subpeg, m):
@@ -1106,7 +1106,7 @@ proc generatefmt(fmtstr: string;
   ##
   ## The function returns a list of pairs `(val, fmt)` where `val` is
   ## an expression to be formatted and `fmt` is the format string (or
-  ## TFormat). Therefore, the resulting string can be generated by
+  ## Format). Therefore, the resulting string can be generated by
   ## concatenating expressions `val.format(fmt)`. If `fmt` is `nil`
   ## then `val` is a (literal) string expression.
   try:
