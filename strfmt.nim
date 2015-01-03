@@ -54,7 +54,7 @@
 ## The `format` function transforms a single value to a string
 ## according to a given *format string*, e.g.
 ##
-## .. code-block:: nimrod
+## .. code-block:: nim
 ##   42.23.format("06.1f")
 ##
 ## The syntax of the format specification string is similar to
@@ -214,7 +214,7 @@
 ## the first character after the ``a`` in the format string. The
 ## following example should make this clear:
 ##
-## .. code-block:: nimrod
+## .. code-block:: nim
 ##   [[2, 3, 4], [5, 6, 7]].format("02da|; |, ")
 ##
 ## This code returns the string `"02, 03, 04; 05, 06, 07"`. The
@@ -260,7 +260,7 @@
 ##   be used to refer to a specific argument. The same argument can be
 ##   refered by multiple replacement fields:
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##     "{0} {1} {0}".fmt(1, 0)
 ##
 ##   gives the string `"1 0 1"`.
@@ -274,7 +274,7 @@
 ##   If the argument is a structered type (e.g. a tuple), this
 ##   specifies which field of the argument should be formatted, e.g.
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##     "{0.x} {0.y}".fmt((x: 1, y:"foo"))
 ##
 ##   gives `"1 foo"`.
@@ -283,7 +283,7 @@
 ##   If the argument is a sequence type the index refers to the
 ##   elements of the sequence to be printed:
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##     "<{[1]}>".fmt([23, 42, 81])
 ##
 ##   gives `"<42>"`.
@@ -302,7 +302,7 @@
 ## specifier* part of a replacement field contains further replacement
 ## fields, e.g.
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##
 ##     "{d:{}{}{}}".fmd(42, ".", "^", 6)
 ##
@@ -319,7 +319,7 @@
 ## separators can be used to format a nested in array in a Matlab-like
 ## style:
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##     "A=[{:6ga|;\n   |, }]".fmt([[1.0,2.0,3.0], [4.0,5.0,6.0]])
 ##
 ## results in
@@ -336,12 +336,12 @@
 ## structure at compile time so that no overhead remains at runtime.
 ## For instance, the following expression
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##     "This {} the number {:_^3} example".fmt("is", 1)
 ##
 ## is roughly transformed to
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##     (let arg0 = "is";
 ##      let arg1 = 1;
 ##      var ret = newString(0);
@@ -376,7 +376,7 @@
 ## expressions. If the string to be interpolated contains a `$`, then
 ## the following characters are interpreted as expressions.
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##
 ##     let x = 2
 ##     let y = 1.0/3.0
@@ -412,13 +412,13 @@
 ## expressions is simply transformed to an equivalent expression using
 ## the `fmt` macro:
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##
 ##     echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
 ##
 ## is transformed to
 ##
-##   .. code-block:: nimrod
+##   .. code-block:: nim
 ##
 ##     echo fmt("Equation: {} + {:.2f} == {}", x, y, x.float + y)
 ##
@@ -427,12 +427,12 @@
 ## The `writefmt` family of macros are convenience helpers to write
 ## formatted output to a file. A call
 ##
-## .. code-block:: nimrod
+## .. code-block:: nim
 ##   writefmt(f, fmtstr, arg1, arg2, ...)
 ##
 ## is equivalent to
 ##
-## .. code-block:: nimrod
+## .. code-block:: nim
 ##   write(f, fmtstr.fmt(arg1, arg2, ...))
 ##
 ## However, the former avoids the creation of temporary intermediate
@@ -445,14 +445,14 @@
 ## In order to add a new formatting function for a type `T` one has to
 ## define a new function
 ##
-## .. code-block:: nimrod
+## .. code-block:: nim
 ##   proc writeformat(o: var Writer; x: T; fmt: TFormat)
 ##
 ## The following example defines a formatting function for
 ## a simple 2D-point data type. The format specification is used for
 ## the printing the two coordinate values.
 ##
-## .. code-block:: nimrod
+## .. code-block:: nim
 ##
 ##   type TPoint = tuple[x, y: float]
 ##
@@ -1070,17 +1070,17 @@ proc splitfmt(s: string): seq[TPart] {.compiletime, nosideeffect.} =
     pos = clpos + 1
 
 proc literal(s: string): PNimrodNode {.compiletime, nosideeffect.} =
-  ## Return the nimrod literal of string `s`. This handles the case if
+  ## Return the nim literal of string `s`. This handles the case if
   ## `s` is nil.
   result = if s == nil: newNilLit() else: newLit(s)
 
 proc literal(b: bool): PNimrodNode {.compiletime, nosideeffect.} =
-  ## Return the nimrod literal of boolean `b`. This is either `true`
+  ## Return the nim literal of boolean `b`. This is either `true`
   ## or `false` symbol.
   result = if b: "true".ident else: "false".ident
 
 proc literal(x): PNimrodNode {.compiletime, nosideeffect.} =
-  ## Return the nimrod literal of value `x`.
+  ## Return the nim literal of value `x`.
   when type(x) is enum:
     result = ($x).ident
   else:
