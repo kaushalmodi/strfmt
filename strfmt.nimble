@@ -6,4 +6,4 @@ description = "A string formatting library inspired by Python's `format`"
 license = "MIT"
 
 [Deps]
-Requires: "nimrod >= 0.9.4"
+Requires: "nimrod >= 0.10.2"
