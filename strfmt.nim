@@ -1,4 +1,4 @@
-# Copyright (c) 2014 Frank Fischer <frank-fischer@shadow-soft.de>
+# Copyright (c) 2014, 2015 Frank Fischer <frank-fischer@shadow-soft.de>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 ## =============
 ## :Author: Frank Fischer
 ## :License: MIT
-## :Version: 0.2.0
+## :Version: 0.3.0
 ##
 ## Introduction
 ## ------------
