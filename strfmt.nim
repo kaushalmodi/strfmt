@@ -474,7 +474,7 @@ import unsigned
 import pegs
 
 type
-  EFormat* = object of Exception ## Error in the format string.
+  FormatError* = object of Exception ## Error in the format string.
 
   Writer* = generic W
     ## Writer to output a character `c`.
@@ -584,7 +584,7 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
 
   var caps: Captures
   if fmt.rawmatch(p, 0, caps) < 0:
-    raise newException(EFormat, "Invalid format string")
+    raise newException(FormatError, "Invalid format string")
 
   result.fill = fmt.get(caps, 0, nil)
 
@@ -607,9 +607,9 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
 
   if caps.has(4) and fmt[caps.bounds(4).first] == '0':
     if result.fill != nil:
-      raise newException(EFormat, "Leading 0 in with not allowed with explicit fill character")
+      raise newException(FormatError, "Leading 0 in with not allowed with explicit fill character")
     if result.align != faDefault:
-      raise newException(EFormat, "Leading 0 in with not allowed with explicit alignment")
+      raise newException(FormatError, "Leading 0 in with not allowed with explicit alignment")
     result.fill = "0"
     result.align = faPadding
 
@@ -696,7 +696,7 @@ proc writeformat*(o: var Writer; s: string; fmt: Format) =
   ## Write string `s` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftStr, ftDefault}):
-    raise newException(EFormat, "String variable must have 's' format type")
+    raise newException(FormatError, "String variable must have 's' format type")
 
   # compute alignment
   let len = if fmt.precision < 0: runelen(s) else: min(runelen(s), fmt.precision)
@@ -713,7 +713,7 @@ proc writeformat*(o: var Writer; c: char; fmt: Format) =
   ## Write character `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
-    raise newException(EFormat, "Character variable must have 'c' format type")
+    raise newException(FormatError, "Character variable must have 'c' format type")
 
   # compute alignment
   var alg = getalign(fmt, faLeft, 1)
@@ -725,7 +725,7 @@ proc writeformat*(o: var Writer; c: Rune; fmt: Format) =
   ## Write rune `c` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftChar, ftDefault}):
-    raise newException(EFormat, "Character variable must have 'c' format type")
+    raise newException(FormatError, "Character variable must have 'c' format type")
 
   # compute alignment
   var alg = getalign(fmt, faLeft, 1)
@@ -741,7 +741,7 @@ proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
   ## Write integer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}):
-    raise newException(EFormat, "Integer variable must of one of the following types: b,o,x,X,d,n")
+    raise newException(FormatError, "Integer variable must of one of the following types: b,o,x,X,d,n")
 
   var base: type(i)
   var len = 0
@@ -787,7 +787,7 @@ proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
       write(o, '0')
       write(o, 'x')
     else:
-      raise newException(EFormat, "# only allowed with b, o, x or X")
+      raise newException(FormatError, "# only allowed with b, o, x or X")
   while ilen > 0:
     ilen.dec
     let c = irev mod base
@@ -816,7 +816,7 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
   ## Write real number `x` according to format `fmt` using output
   ## object `o` and output function `add`.
   if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
-    raise newException(EFormat, "Integer variable must of one of the following types: f,F,e,E,g,G,%")
+    raise newException(FormatError, "Integer variable must of one of the following types: f,F,e,E,g,G,%")
 
   let positive = x >= 0 and classify(x) != fcNegZero
   var len = 0
