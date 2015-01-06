@@ -922,6 +922,25 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
   if fmt.typ == ftPercent: write(o, '%')
   writefill(o, fmt, alg.right)
 
+proc writeformat*(o: var Writer; b: bool; fmt: Format) =
+  ## Write boolean value `b` according to format `fmt` using output
+  ## object `o`. A boolean may be formatted numerically or as string.
+  ## In the former case true is written as 1 and false as 0, in the
+  ## latter the strings "true" and "false" are shown, respectively.
+  ## The default is string format.
+  if fmt.typ in {ftStr, ftDefault}:
+    writeformat(o,
+                if b: "true"
+                else: "false",
+                fmt)
+  elif fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}:
+    writeformat(o,
+                if b: 1
+                else: 0,
+                fmt)
+  else:
+    raise newException(FormatError, "Boolean values must of one of the following types: s,b,o,x,X,d,n")
+
 proc writeformat*(o: var Writer; ary: openarray[any]; fmt: Format) =
   ## Write array `ary` according to format `fmt` using output object
   ## `o` and output function `add`.
@@ -1486,6 +1505,14 @@ when isMainModule:
   doassert((-0.0000123456).format("0=10.3") == "-01.23e-05")
   doassert 0.3.format("%") == "30.000000%"
   doassert 0.3.format(".2%") == "30.00%"
+
+  # boolean values
+  doassert true.format("") == "true"
+  doassert false.format("") == "false"
+  doassert true.format("s") == "true"
+  doassert false.format("s") == "false"
+  doassert true.format("d") == "1"
+  doassert false.format("d") == "0"
 
   doassert([[1,2,3], [4,5,6]].format("3a:;\n :, ") == "  1,   2,   3;\n   4,   5,   6")
   doassert([[1,2,3], [4,5,6]].format("") == "1\t2\t3\t4\t5\t6")
