@@ -1207,11 +1207,11 @@ macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   result.add(addfmtfmt($fmtstr, args, retvar))
   result.add(retvar)
 
-macro writefmt*(f: File; fmtstr: string; args: varargs[expr]): expr =
+macro writefmt*(f: File; fmtstr: string{lit}; args: varargs[expr]): expr =
   ## The same as `write(f, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr, args, f)
 
-macro writelnfmt*(f: File; fmtstr: string; args: varargs[expr]): expr =
+macro writelnfmt*(f: File; fmtstr: string{lit}; args: varargs[expr]): expr =
   ## The same as `writeln(f, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr & "\n", args, f)
 
