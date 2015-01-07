@@ -472,6 +472,7 @@ import math
 import fenv
 import unsigned
 import pegs
+import streams
 
 type
   FormatError* = object of Exception ## Error in the format string.
@@ -994,6 +995,21 @@ proc addformat*(f: File; x; fmt: string) {.inline.} =
   ## as `addformat(f, x, parse(fmt))`
   addformat(f, x, parse(fmt))
 
+proc addformat*(s: Stream; x: string) {.inline.} =
+  ## Write `x` to `s`. This is a fast specialized version for
+  ## writing unformatted strings to a stream.
+  write(s, x)
+
+proc addformat*(s: Stream; x; fmt: Format = DefaultFmt) {.inline.} =
+  ## Write `x` to stream `s` using format `fmt`.
+  var g = s
+  writeformat(g, x, fmt)
+
+proc addformat*(s: Stream; x; fmt: string) {.inline.} =
+  ## Write `x` to stream `s` using format string `fmt`. This is the same
+  ## as `addformat(s, x, parse(fmt))`
+  addformat(s, x, parse(fmt))
+
 proc format*(x; fmt: Format): string =
   ## Return `x` formatted as a string according to format `fmt`.
   result = ""
@@ -1222,6 +1238,14 @@ macro printfmt*(fmtstr: string{lit}; args: varargs[expr]): expr =
 macro printlnfmt*(fmtstr: string{lit}; args: varargs[expr]): expr =
   ## The same as `writelnfmt(stdout, fmtstr, args...)`.
   result = addfmtfmt($fmtstr & "\n", args, bindsym"stdout")
+
+macro writefmt*(s: Stream; fmtstr: string{lit}; args: varargs[expr]): expr =
+  ## The same as `write(s, fmtstr.fmt(args...))` but faster.
+  result = addfmtfmt($fmtstr, args, s)
+
+macro writelnfmt*(s: Stream; fmtstr: string{lit}; args: varargs[expr]): expr =
+  ## The same as `writeln(s, fmtstr.fmt(args...))` but faster.
+  result = addfmtfmt($fmtstr & "\n", args, s)
 
 proc geninterp(fmtstr: string): PNimrodNode {.compileTime.} =
   ## Generate `fmt` expression for interpolated string `fmtstr`.
