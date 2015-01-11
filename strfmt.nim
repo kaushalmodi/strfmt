@@ -535,10 +535,10 @@ type
       nested: bool ## true if the argument contains nested formats
 
 const
-  DefaultFmt*: Format = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil)
+  DefaultPrec = 6 ## Default precision for floating point numbers.
+  DefaultFmt*: Format = (ftDefault, DefaultPrec, -1, nil, faDefault, fsMinus, false, false, false, nil)
     ## Default format corresponding to the empty format string, i.e.
     ##   `x.format("") == x.format(DefaultFmt)`.
-  DefaultPrec = 6 ## Default precision for floating point numbers.
   round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
     ## Rounding offset for floating point numbers up to precision 8.
 
@@ -1022,7 +1022,7 @@ proc format*(x; fmt: string): string =
 proc format*(x): string {.inline.} =
   ## Return `x` formatted as a string according to the default format.
   ## The default format corresponds to an empty format string.
-  var fmt {.global.} : Format
+  var fmt {.global.} : Format = DefaultFmt
   result = format(x, fmt)
 
 proc unquoted(s: string): string {.compileTime.} =
@@ -1504,6 +1504,7 @@ when isMainModule:
   doassert negzero.format("0=-8") == "-0000000"
   doassert negzero.format("-08") == "-0000000"
 
+  doassert 123.456.format() == "123.456"
   doassert 123.456.format("f") == "123.456000"
   doassert 123.456.format(".2f") == "123.46"
   doassert 123.456.format("8.2f") == "  123.46"
