@@ -536,7 +536,7 @@ type
 
 const
   DefaultPrec = 6 ## Default precision for floating point numbers.
-  DefaultFmt*: Format = (ftDefault, DefaultPrec, -1, nil, faDefault, fsMinus, false, false, false, nil)
+  DefaultFmt*: Format = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil)
     ## Default format corresponding to the empty format string, i.e.
     ##   `x.format("") == x.format(DefaultFmt)`.
   round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
@@ -696,7 +696,7 @@ proc writefill(o: var Writer; fmt: Format; n: int; signum: int = 0) =
 proc writeformat*(o: var Writer; s: string; fmt: Format) =
   ## Write string `s` according to format `fmt` using output object
   ## `o` and output function `add`.
-  if not (fmt.typ in {ftStr, ftDefault}):
+  if fmt.typ notin {ftDefault, ftStr}:
     raise newException(FormatError, "String variable must have 's' format type")
 
   # compute alignment
@@ -741,13 +741,16 @@ proc abs(x: SomeUnsignedInt): SomeUnsignedInt {.inline.} = x
 proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
   ## Write integer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
-  if not (fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}):
+  var fmt = fmt
+  if fmt.typ == ftDefault:
+    fmt.typ = ftDec
+  if not (fmt.typ in {ftBin, ftOct, ftHex, ftDec}):
     raise newException(FormatError, "Integer variable must of one of the following types: b,o,x,X,d,n")
 
   var base: type(i)
   var len = 0
   case fmt.typ:
-  of ftDec, ftDefault:
+  of ftDec:
     base = 10
   of ftBin:
     base = 2
@@ -816,7 +819,12 @@ proc writeformat*(o: var Writer; p: pointer; fmt: Format) =
 proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
   ## Write real number `x` according to format `fmt` using output
   ## object `o` and output function `add`.
-  if not (fmt.typ in {ftDefault, ftFix, ftSci, ftGen, ftPercent}):
+  var fmt = fmt
+  # handle default format
+  if fmt.typ == ftDefault:
+    fmt.typ = ftGen
+    if fmt.precision < 0: fmt.precision = DefaultPrec
+  if not (fmt.typ in {ftFix, ftSci, ftGen, ftPercent}):
     raise newException(FormatError, "Integer variable must of one of the following types: f,F,e,E,g,G,%")
 
   let positive = x >= 0 and classify(x) != fcNegZero
@@ -845,7 +853,7 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
   else: # a usual fractional number
     if not (fmt.typ in {ftFix, ftPercent}): # not fixed point
       exp = int(floor(log10(y)))
-      if fmt.typ in {ftGen, ftDefault}:
+      if fmt.typ == ftGen:
         if prec == 0: prec = 1
         if -4 <= exp and exp < prec:
           prec = prec-1-exp
@@ -888,7 +896,7 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
       frstr[frlen] = '0'
       frlen.inc
     # possible remove trailing 0
-    if fmt.typ in {ftGen, ftDefault}:
+    if fmt.typ == ftGen:
       while frbeg < frlen and frstr[frbeg] == '0': frbeg.inc
   # update length of string
   len += numlen;
@@ -901,7 +909,7 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
   if frbeg < frlen:
     write(o, '.')
     for i in (frlen-1).countdown(frbeg): write(o, frstr[i])
-  if fmt.typ in {ftSci} or (fmt.typ in {ftGen, ftDefault} and exp != 0):
+  if fmt.typ == ftSci or (fmt.typ == ftGen and exp != 0):
     write(o, if fmt.upcase: 'E' else: 'e')
     if exp >= 0:
       write(o, '+')
@@ -934,7 +942,7 @@ proc writeformat*(o: var Writer; b: bool; fmt: Format) =
                 if b: "true"
                 else: "false",
                 fmt)
-  elif fmt.typ in {ftDefault, ftBin, ftOct, ftHex, ftDec}:
+  elif fmt.typ in {ftBin, ftOct, ftHex, ftDec}:
     writeformat(o,
                 if b: 1
                 else: 0,
