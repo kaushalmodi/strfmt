@@ -1327,6 +1327,7 @@ when isMainModule:
   doassert "hello".format(".^11s") == "...hello..."
 
   # string without 's'
+  doassert "hällobello".format("") == "hällobello"
   doassert "hällo".format("") == "hällo"
   doassert "hällo".format("10") == "hällo     "
   doassert "hällo".format("<10") == "hällo     "
@@ -1513,6 +1514,7 @@ when isMainModule:
   doassert negzero.format("-08") == "-0000000"
 
   doassert 123.456.format() == "123.456"
+  doassert 123.45678.format() == "123.457"
   doassert 123.456.format("f") == "123.456000"
   doassert 123.456.format(".2f") == "123.46"
   doassert 123.456.format("8.2f") == "  123.46"
