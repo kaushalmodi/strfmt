@@ -864,10 +864,8 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
       else:
         len += 4 # exponent
       # shift y so that 1 <= abs(y) < 2
-      var mult = 1
-      for i in 1..abs(exp): mult *= 10
-      if exp > 0: y /= mult.SomeReal
-      elif exp < 0: y *= mult.SomeReal
+      if exp > 0: y /= pow(10.SomeReal, abs(exp).SomeReal)
+      elif exp < 0: y *= pow(10.SomeReal, abs(exp).SomeReal)
     elif fmt.typ == ftPercent:
       len += 1 # percent sign
 
