@@ -23,7 +23,7 @@
 ## =============
 ## :Author: Frank Fischer
 ## :License: MIT
-## :Version: 0.5.3
+## :Version: 0.5.4
 ##
 ## Introduction
 ## ------------
@@ -1253,6 +1253,10 @@ macro writelnfmt*(s: Stream; fmtstr: string{lit}; args: varargs[expr]): expr =
   ## The same as `writeln(s, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr & "\n", args, s)
 
+macro addfmt*(s: var string, fmtstr: string{lit}, args: varargs[expr]): expr =
+  ## The same as `s.add(fmtstr.fmt(args...))` but faster.
+  result = addfmtfmt($fmtstr, args, s)
+
 proc geninterp(fmtstr: string): PNimrodNode {.compileTime.} =
   ## Generate `fmt` expression for interpolated string `fmtstr`.
   var pos = 0
@@ -1578,3 +1582,7 @@ when isMainModule:
     let y = 8
     doassert($$"max($x, $y) == ${max(x,y)}" == "max(32, 8) == 32")
   doassert(interp"formatted: ${4:.^5}" == "formatted: ..4..")
+
+  var s: string = ""
+  s.addfmt("a:{}", 42)
+  doassert(s == "a:42")
