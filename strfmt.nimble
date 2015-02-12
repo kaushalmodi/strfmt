@@ -1,6 +1,6 @@
 [Package]
 name = "strfmt"
-version = "0.5.4"
+version = "0.5.5"
 author = "Frank Fischer"
 description = "A string formatting library inspired by Python's `format`"
 license = "MIT"

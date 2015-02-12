@@ -23,7 +23,7 @@
 ## =============
 ## :Author: Frank Fischer
 ## :License: MIT
-## :Version: 0.5.3
+## :Version: 0.5.5
 ##
 ## Introduction
 ## ------------
