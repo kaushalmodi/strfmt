@@ -973,11 +973,11 @@ proc writeformat*(o: var Writer; ary: openarray[any]; fmt: Format) =
     for c in sep: write(o, c)
     writeformat(o, ary[i], nxtfmt)
 
-proc addformat*(o: var Writer; x; fmt: Format = DefaultFmt) {.inline.} =
+proc addformat*[T](o: var Writer; x: T; fmt: Format = DefaultFmt) {.inline.} =
   ## Write `x` formatted with `fmt` to `o`.
   writeformat(o, x, fmt)
 
-proc addformat*(o: var Writer; x; fmt: string) {.inline.} =
+proc addformat*[T](o: var Writer; x: T; fmt: string) {.inline.} =
   ## The same as `addformat(o, x, parse(fmt))`.
   addformat(o, x, fmt.parse)
 
@@ -991,12 +991,12 @@ proc addformat*(f: File; x: string) {.inline.} =
   ## writing unformatted strings to a file.
   write(f, x)
 
-proc addformat*(f: File; x; fmt: Format = DefaultFmt) {.inline.} =
+proc addformat*[T](f: File; x: T; fmt: Format = DefaultFmt) {.inline.} =
   ## Write `x` to file `f` using format `fmt`.
   var g = f
   writeformat(g, x, fmt)
 
-proc addformat*(f: File; x; fmt: string) {.inline.} =
+proc addformat*[T](f: File; x: T; fmt: string) {.inline.} =
   ## Write `x` to file `f` using format string `fmt`. This is the same
   ## as `addformat(f, x, parse(fmt))`
   addformat(f, x, parse(fmt))
@@ -1006,26 +1006,26 @@ proc addformat*(s: Stream; x: string) {.inline.} =
   ## writing unformatted strings to a stream.
   write(s, x)
 
-proc addformat*(s: Stream; x; fmt: Format = DefaultFmt) {.inline.} =
+proc addformat*[T](s: Stream; x: T; fmt: Format = DefaultFmt) {.inline.} =
   ## Write `x` to stream `s` using format `fmt`.
   var g = s
   writeformat(g, x, fmt)
 
-proc addformat*(s: Stream; x; fmt: string) {.inline.} =
+proc addformat*[T](s: Stream; x: T; fmt: string) {.inline.} =
   ## Write `x` to stream `s` using format string `fmt`. This is the same
   ## as `addformat(s, x, parse(fmt))`
   addformat(s, x, parse(fmt))
 
-proc format*(x; fmt: Format): string =
+proc format*[T](x: T; fmt: Format): string =
   ## Return `x` formatted as a string according to format `fmt`.
   result = ""
   addformat(result, x, fmt)
 
-proc format*(x; fmt: string): string =
+proc format*[T](x: T; fmt: string): string =
   ## Return `x` formatted as a string according to format string `fmt`.
   result = format(x, fmt.parse)
 
-proc format*(x): string {.inline.} =
+proc format*[T](x: T): string {.inline.} =
   ## Return `x` formatted as a string according to the default format.
   ## The default format corresponds to an empty format string.
   var fmt {.global.} : Format = DefaultFmt
@@ -1120,7 +1120,7 @@ proc literal(b: bool): PNimrodNode {.compiletime, nosideeffect.} =
   ## or `false` symbol.
   result = if b: "true".ident else: "false".ident
 
-proc literal(x): PNimrodNode {.compiletime, nosideeffect.} =
+proc literal[T](x: T): PNimrodNode {.compiletime, nosideeffect.} =
   ## Return the nim literal of value `x`.
   when type(x) is enum:
     result = ($x).ident
