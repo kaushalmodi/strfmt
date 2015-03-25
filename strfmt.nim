@@ -477,11 +477,9 @@ import streams
 type
   FormatError* = object of Exception ## Error in the format string.
 
-  Writer* = generic W
+  Writer* = concept W
     ## Writer to output a character `c`.
-    block:
-      var x: W
-      write(x, char)
+    write(W, char)
 
   FmtAlign* = enum ## Format alignment
     faDefault  ## default for given format type
