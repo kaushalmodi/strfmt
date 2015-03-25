@@ -1110,17 +1110,17 @@ proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
     result.add(fmtpart)
     pos = clpos + 1
 
-proc literal(s: string): PNimrodNode {.compiletime, nosideeffect.} =
+proc literal(s: string): NimNode {.compiletime, nosideeffect.} =
   ## Return the nim literal of string `s`. This handles the case if
   ## `s` is nil.
   result = if s == nil: newNilLit() else: newLit(s)
 
-proc literal(b: bool): PNimrodNode {.compiletime, nosideeffect.} =
+proc literal(b: bool): NimNode {.compiletime, nosideeffect.} =
   ## Return the nim literal of boolean `b`. This is either `true`
   ## or `false` symbol.
   result = if b: "true".ident else: "false".ident
 
-proc literal[T](x: T): PNimrodNode {.compiletime, nosideeffect.} =
+proc literal[T](x: T): NimNode {.compiletime, nosideeffect.} =
   ## Return the nim literal of value `x`.
   when type(x) is enum:
     result = ($x).ident
@@ -1128,8 +1128,8 @@ proc literal[T](x: T): PNimrodNode {.compiletime, nosideeffect.} =
     result = newLit(x)
 
 proc generatefmt(fmtstr: string;
-                 args: var openarray[tuple[arg:PNimrodNode, cnt:int]];
-                 arg: var int;): seq[tuple[val, fmt:PNimrodNode]] {.compiletime.} =
+                 args: var openarray[tuple[arg:NimNode, cnt:int]];
+                 arg: var int;): seq[tuple[val, fmt:NimNode]] {.compiletime.} =
   ## fmtstr
   ##   the format string
   ## args
@@ -1158,7 +1158,7 @@ proc generatefmt(fmtstr: string;
       of pkFmt:
         # first compute the argument expression
         # start with the correct index
-        var argexpr : PNimrodNode
+        var argexpr : NimNode
         if part.arg >= 0:
           if arg > 0:
             error("Cannot switch from automatic field numbering to manual field specification")
@@ -1182,7 +1182,7 @@ proc generatefmt(fmtstr: string;
         if part.index < int.high:
           argexpr = newNimNode(nnkBracketExpr).add(argexpr, newLit(part.index))
         # now the expression for the format data
-        var fmtexpr: PNimrodNode
+        var fmtexpr: NimNode
         if part.nested:
           # nested format string. Compute the format string by
           # concatenating the parts of the substring.
@@ -1202,8 +1202,8 @@ proc generatefmt(fmtstr: string;
   finally:
     discard
 
-proc addfmtfmt(fmtstr: string; args: PNimrodNode; retvar: PNimrodNode): PNimrodNode {.compileTime.} =
-  var argexprs = newseq[tuple[arg:PNimrodNode; cnt:int]](args.len)
+proc addfmtfmt(fmtstr: string; args: NimNode; retvar: NimNode): NimNode {.compileTime.} =
+  var argexprs = newseq[tuple[arg:NimNode; cnt:int]](args.len)
   result = newNimNode(nnkStmtListExpr)
   # generate let bindings for arguments
   for i in 0..args.len-1:
@@ -1257,11 +1257,11 @@ macro addfmt*(s: var string, fmtstr: string{lit}, args: varargs[expr]): expr =
   ## The same as `s.add(fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr, args, s)
 
-proc geninterp(fmtstr: string): PNimrodNode {.compileTime.} =
+proc geninterp(fmtstr: string): NimNode {.compileTime.} =
   ## Generate `fmt` expression for interpolated string `fmtstr`.
   var pos = 0
   var fstr = ""
-  var args = newseq[PNimrodNode]()
+  var args = newseq[NimNode]()
   var loop = true
   while loop and pos < fmtstr.len:
     let n = fmtstr.skipUntil({'$', '{', '}'}, pos)
