@@ -304,16 +304,16 @@
 ##
 ##   .. code-block:: nim
 ##
-##     "{d:{}{}{}}".fmd(42, ".", "^", 6)
+##     "{:{}{}{}x}".fmt(66, ".", "^", 6)
 ##
 ## Results in the string `"..42.."`.
 ##
 ## `fmt` allows exactly one nested level. Note that the resulting code
 ## is slightly more inefficient than without nesting (but only for
 ## those arguments that actually use nested fields), because after
-## construction the outer format specification, the format string must
-## be parsed again. Furthermore, the constructed format string
-## requires an additional temporary string.
+## construction of the outer format specification, the format string
+## must be parsed again at runtime. Furthermore, the constructed
+## format string requires an additional temporary string.
 ##
 ## The following example demonstrates how `fmt` together with array
 ## separators can be used to format a nested in array in a Matlab-like
@@ -450,7 +450,7 @@
 ##
 ## The following example defines a formatting function for
 ## a simple 2D-point data type. The format specification is used for
-## the printing the two coordinate values.
+## formatting the two coordinate values.
 ##
 ## .. code-block:: nim
 ##
@@ -1066,10 +1066,6 @@ proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
   ## "{[arg][:format]}" where `arg` is either empty or a number
   ## refering to the arg-th argument and an additional field or array
   ## index. The format string is a string accepted by `parse`.
-  # let subpeg = sequence(capture(*digits()),
-  #                         capture(?sequence(charSet({'.'}), pegs.identStartChars(), *identChars())),
-  #                         capture(?sequence(charSet({'['}), +digits(), charSet({']'}))),
-  #                         capture(?sequence(charSet({':'}), *pegs.any())))
   result = @[]
   var pos = 0
   while true:
@@ -1221,7 +1217,7 @@ proc generatefmt(fmtstr: string;
           # nested format string. Compute the format string by
           # concatenating the parts of the substring.
           for e in generatefmt(part.fmt, args, arg):
-            var newexpr = if part.fmt == nil: e.val else: newCall(bindsym"format", e.val, e.fmt)
+            var newexpr = if e.fmt == nil: e.val else: newCall(bindsym"format", e.val, e.fmt)
             if fmtexpr != nil and fmtexpr.kind != nnkNilLit:
               fmtexpr = infix(fmtexpr, "&", newexpr)
             else:
@@ -1593,6 +1589,7 @@ when isMainModule:
              "number: 42 with width:  1.45 string: ..hello.. array: 1, 2, 3 end")
   doassert("{{{}}}".fmt("hallo") == "{hallo}")
 
+  doassert ("[{:{}^{}x}]".fmt(66, '.', 6) == "[..42..]")
   doassert ("[{:{}{}{}}]{{{:{}{}{}}}}".fmt(5, '.', '>', 6, "abc", "-", "^", 10) == "[.....5]{---abc----}")
   doassert ("[{0:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....5]")
   doassert ("[{3:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....6]")
