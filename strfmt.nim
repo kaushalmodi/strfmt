@@ -545,96 +545,115 @@ const
 proc write*(s: var string; c: char) =
   s.add(c)
 
-proc has(c: Captures; i: range[0..pegs.MaxSubpatterns-1]): bool {.nosideeffect, inline.} =
-  ## Tests whether `c` contains a non-empty capture `i`.
-  let b = c.bounds(i)
-  result = b.first <= b.last
-
-proc get(str: string; c: Captures; i: range[0..MaxSubpatterns-1]; def: char): char {.nosideeffect, inline.} =
-  ## If capture `i` is non-empty return that portion of `str` casted
-  ## to `char`, otherwise return `def`.
-  result = if c.has(i): str[c.bounds(i).first] else: def
-
-proc get(str: string; c: Captures; i: range[0..MaxSubpatterns-1]; def: string; begoff: int = 0): string {.nosideeffect, inline.} =
-  ## If capture `i` is non-empty return that portion of `str` as
-  ## string, otherwise return `def`.
-  let b = c.bounds(i)
-  result = if c.has(i): str.substr(b.first + begoff, b.last) else: def
-
-proc get(str: string; c: Captures; i: range[0..MaxSubpatterns-1]; def: int; begoff: int = 0): int {.nosideeffect, inline.} =
-  ## If capture `i` is non-empty return that portion of `str`
-  ## converted to int, otherwise return `def`.
-  if c.has(i):
-    discard str.parseInt(result, c.bounds(i).first + begoff)
-  else:
-    result = def
-
 proc parse*(fmt: string): Format {.nosideeffect.} =
   # Converts the format string `fmt` into a `Format` structure.
-  let p =
-    sequence(capture(?sequence(anyRune(), &charSet({'<', '>', '=', '^'}))),
-             capture(?charSet({'<', '>', '=', '^'})),
-             capture(?charSet({'-', '+', ' '})),
-             capture(?charSet({'#'})),
-             capture(?(+digits())),
-             capture(?charSet({','})),
-             capture(?sequence(charSet({'.'}), +digits())),
-             capture(?charSet({'b', 'c', 'd', 'e', 'E', 'f', 'F', 'g', 'G', 'n', 'o', 's', 'x', 'X', '%'})),
-             capture(?sequence(charSet({'a'}), *pegs.any())))
-  # let p=peg"{(_&[<>=^])?}{[<>=^]?}{[-+ ]?}{[#]?}{[0-9]+?}{[,]?}{([.][0-9]+)?}{[bcdeEfFgGnosxX%]?}{(a.*)?}"
+  let n = fmt.len
+  var pos = 0
 
-  var caps: Captures
-  if fmt.rawmatch(p, 0, caps) < 0:
-    raise newException(FormatError, "Invalid format string")
+  # alignment and possible fill character
+  if pos == n:
+    result.align = faDefault
+  else:
+    let rlen = fmt.runeLenAt(pos)
+    if fmt[pos + rlen] in { '<', '>', '^', '=' }:
+      result.fill = fmt[pos .. <pos+rlen]
+      case fmt[pos + rlen]
+      of '<': result.align = faLeft
+      of '>': result.align = faRight
+      of '^': result.align = faCenter
+      of '=': result.align = faPadding
+      else: assert(false)
+      pos.inc rlen + 1
+    elif fmt[pos] in { '<', '>', '^', '=' }:
+      case fmt[pos]
+      of '<': result.align = faLeft
+      of '>': result.align = faRight
+      of '^': result.align = faCenter
+      of '=': result.align = faPadding
+      else: assert(false)
+      pos.inc
+    else:
+      result.align = faDefault
 
-  result.fill = fmt.get(caps, 0, nil)
+  # sign
+  if pos < n and fmt[pos] in { '-', '+', ' '}:
+    case fmt[pos]
+    of '-': result.sign = fsMinus
+    of '+': result.sign = fsPlus
+    of ' ': result.sign = fsSpace
+    else: discard
+    pos.inc
+  else:
+    result.sign = fsMinus
 
-  case fmt.get(caps, 1, 0.char)
-  of '<': result.align = faLeft
-  of '>': result.align = faRight
-  of '^': result.align = faCenter
-  of '=': result.align = faPadding
-  else: result.align = faDefault
+  # base prefix
+  if pos < n and fmt[pos] == '#':
+    result.baseprefix = true
+    pos.inc
 
-  case fmt.get(caps, 2, '-')
-  of '-': result.sign = fsMinus
-  of '+': result.sign = fsPlus
-  of ' ': result.sign = fsSpace
-  else: result.sign = fsMinus
-
-  result.baseprefix = caps.has(3)
-
-  result.width = fmt.get(caps, 4, -1)
-
-  if caps.has(4) and fmt[caps.bounds(4).first] == '0':
+  # zero padding
+  if pos < n and fmt[pos] == '0':
     if result.fill != nil:
       raise newException(FormatError, "Leading 0 in with not allowed with explicit fill character")
     if result.align != faDefault:
       raise newException(FormatError, "Leading 0 in with not allowed with explicit alignment")
     result.fill = "0"
     result.align = faPadding
+    pos.inc
 
-  result.comma = caps.has(5)
+  # width
+  if pos < n and fmt[pos] in Digits:
+    pos.inc parseInt(fmt, result.width, pos)
+  else:
+    result.width = -1
 
-  result.precision = fmt.get(caps, 6, -1, 1)
+  # comma
+  if pos < n and fmt[pos] == ',':
+    result.comma = true
+    # warning("Comma ',' in format string is currently ignored")
 
-  case fmt.get(caps, 7, 0.char)
-  of 's': result.typ = ftStr
-  of 'c': result.typ = ftChar
-  of 'd', 'n': result.typ = ftDec
-  of 'b': result.typ = ftBin
-  of 'o': result.typ = ftOct
-  of 'x': result.typ = ftHex
-  of 'X': result.typ = ftHex; result.upcase = true
-  of 'f', 'F': result.typ = ftFix
-  of 'e': result.typ = ftSci
-  of 'E': result.typ = ftSci; result.upcase = true
-  of 'g': result.typ = ftGen
-  of 'G': result.typ = ftGen; result.upcase = true
-  of '%': result.typ = ftPercent
-  else: result.typ = ftDefault
+  # precision
+  if pos < n and fmt[pos] == '.':
+    pos.inc
+    if not (pos < n and fmt[pos] in Digits):
+      raise newException(FormatError, "Expected number describing precision after '.'")
+    pos += parseInt(fmt, result.precision, pos)
+  else:
+    result.precision = -1
 
-  result.arysep = fmt.get(caps, 8, nil, 1)
+  # type
+  if pos < n:
+    case fmt[pos]
+    of 's': result.typ = ftStr
+    of 'c': result.typ = ftChar
+    of 'd', 'n': result.typ = ftDec
+    of 'b': result.typ = ftBin
+    of 'o': result.typ = ftOct
+    of 'x': result.typ = ftHex
+    of 'X': result.typ = ftHex; result.upcase = true
+    of 'f', 'F': result.typ = ftFix
+    of 'e': result.typ = ftSci
+    of 'E': result.typ = ftSci; result.upcase = true
+    of 'g': result.typ = ftGen
+    of 'G': result.typ = ftGen; result.upcase = true
+    of '%': result.typ = ftPercent
+    of 'a': pos.dec # array format, handled below
+    else:
+      raise newException(FormatError, "Unknown format type: '" & $fmt[pos] & "'")
+    pos.inc
+  else:
+    result.typ = ftDefault
+
+  # array separator
+  if pos < n and fmt[pos] == 'a':
+    result.arysep = fmt[pos+1 .. <fmt.len]
+    pos = fmt.len
+  else:
+    result.arysep = nil
+
+  # end of format string
+  if pos < n:
+    raise newException(FormatError, "Unexpected character at the end of the format string: '" & fmt[pos] & "'")
 
 proc getalign*(fmt: Format; defalign: FmtAlign; slen: int) : tuple[left, right:int] {.nosideeffect.} =
   ## Returns the number of left and right padding characters for a
@@ -1049,10 +1068,10 @@ proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
   ## "{[arg][:format]}" where `arg` is either empty or a number
   ## refering to the arg-th argument and an additional field or array
   ## index. The format string is a string accepted by `parse`.
-  let subpeg = sequence(capture(*digits()),
-                          capture(?sequence(charSet({'.'}), pegs.identStartChars(), *identChars())),
-                          capture(?sequence(charSet({'['}), +digits(), charSet({']'}))),
-                          capture(?sequence(charSet({':'}), *pegs.any())))
+  # let subpeg = sequence(capture(*digits()),
+  #                         capture(?sequence(charSet({'.'}), pegs.identStartChars(), *identChars())),
+  #                         capture(?sequence(charSet({'['}), +digits(), charSet({']'}))),
+  #                         capture(?sequence(charSet({':'}), *pegs.any())))
   result = @[]
   var pos = 0
   while true:
@@ -1091,22 +1110,39 @@ proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
     let clpos = pos
     var fmtpart = Part(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), field: nil, index: int.high, nested: nested)
     if fmtpart.fmt.len > 0:
-      var m: array[0..3, string]
-      if not fmtpart.fmt.match(subpeg, m):
-        error("invalid format string")
+      var pos = 0
+      let n = fmtpart.fmt.len
+      # argument number
+      if pos < n and fmtpart.fmt[pos] in Digits:
+        pos += parseInt(fmtpart.fmt, fmtpart.arg, pos)
 
-      if m[1] != nil and m[1].len > 0:
-        fmtpart.field = m[1].substr(1)
-      if m[2] != nil and m[2].len > 0:
-        discard parseInt(m[2].substr(1, m[2].len-2), fmtpart.index)
+      # field
+      if pos < n and fmtpart.fmt[pos] == '.':
+        pos.inc
+        if pos == n or fmtpart.fmt[pos] notin IdentStartChars:
+          error("Expected field identifier name after '.' in format string")
+        pos += parseIdent(fmtpart.fmt, fmtpart.field, pos)
 
-      if m[0].len > 0: discard parseInt(m[0], fmtpart.arg)
-      if m[3] == nil or m[3].len == 0:
-        fmtpart.fmt = ""
-      elif m[3][0] == ':':
-        fmtpart.fmt = m[3].substr(1)
+      # index
+      if pos < n and fmtpart.fmt[pos] == '[':
+        pos.inc
+        let lenidx = parseInt(fmtpart.fmt, fmtpart.index, pos)
+        if lenidx == 0:
+          error("Expected numeric index after '[' in format string")
+        pos.inc lenidx
+        if pos == n or fmtpart.fmt[pos] != ']':
+          error("Missing closing bracket ']' in format string")
+        pos.inc
+
+      # format specifier
+      if pos < n and fmtpart.fmt[pos] == ':':
+        fmtpart.fmt = fmtpart.fmt[pos+1 .. <n]
+        pos = n
       else:
-        fmtpart.fmt = m[3]
+        fmtpart.fmt = ""
+
+      if pos < n: error("Unexpected end of format string")
+
     result.add(fmtpart)
     pos = clpos + 1
 
@@ -1280,7 +1316,7 @@ proc geninterp(fmtstr: string): PNimrodNode {.compileTime.} =
       if fmtstr[pos] == '$':
         pos += 1
         fstr.add('$')
-      elif fmtstr[pos] in strutils.IdentStartChars:
+      elif fmtstr[pos] in IdentStartChars:
         var ident: string
         pos += fmtstr.parseIdent(ident, pos)
         args.add(parseExpr(ident))
