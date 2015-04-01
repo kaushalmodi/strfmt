@@ -465,14 +465,12 @@
 ##     write(o, ')')
 
 import macros
-from strutils import IdentStartChars
-import parseutils
-import unicode
-import math
-import fenv
-import unsigned
-import pegs
-import streams
+
+from strutils import IdentStartChars, Digits
+from parseutils import parseInt, parseIdent, parseUntil, skipUntil
+from unicode import Rune, runeLen, runeLenAt, runeAt, toUTF8
+from math import classify, FloatClass, floor, log10, pow
+from streams import Stream, write
 
 type
   FormatError* = object of Exception ## Error in the format string.
