@@ -534,7 +534,7 @@ type
 
 const
   DefaultPrec = 6 ## Default precision for floating point numbers.
-  DefaultFmt*: Format = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil)
+  DefaultFmt*: Format = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil) ## \
     ## Default format corresponding to the empty format string, i.e.
     ##   `x.format("") == x.format(DefaultFmt)`.
   round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005]
