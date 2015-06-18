@@ -1310,15 +1310,28 @@ proc geninterp(fmtstr: string): NimNode {.compileTime.} =
         fstr.add('$')
       elif fmtstr[pos] in IdentStartChars:
         var ident: string
+        let beg = pos
         pos += fmtstr.parseIdent(ident, pos)
-        args.add(parseExpr(ident))
+        # parse the identifier
+        try:
+          args.add(parseExpr(ident))
+        except ValueError:
+          error "Cannot parse identifier after $ at character " & $beg
         fstr.add("{}")
       elif fmtstr[pos] == '{':
         pos += 1
         let beg = pos
-        pos += fmtstr.skipUntil({':', '}'}, pos)
-        let e = parseExpr(fmtstr.substr(beg, pos-1))
-        args.add(e)
+        # parse the expression
+        while true:
+          pos += fmtstr.skipUntil({':', '}'}, pos)
+          try:
+            let e = parseExpr(fmtstr.substr(beg, pos-1))
+            args.add(e)
+            break
+          except ValueError:
+            if pos >= fmtstr.len:
+              error "Cannot parse ${...} expression starting at character " & $beg
+            pos += 1
         if fmtstr[pos] == ':':
           var fmtarg: string
           pos += fmtstr.parseUntil(fmtarg, '}', pos)
