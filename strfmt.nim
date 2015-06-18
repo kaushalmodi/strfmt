@@ -361,14 +361,7 @@
 ##
 ## ------
 ##
-## **Warning:** This feature is highly experimental. It has (at least)
-## the following flaws:
-##
-## - embedded expressions *must* be correct expressions, error
-##   checking is very weak and no useful error message is generated
-## - the embedded expressions *must not* contain at closing brace
-##   ``}`` or a colon ``:``, because both would be regarded as
-##   delimiter
+## **Warning:** This feature is highly experimental.
 ##
 ## ------
 ##
