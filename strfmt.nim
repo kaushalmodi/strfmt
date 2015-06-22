@@ -101,9 +101,9 @@
 ##   =======  =========
 ##   Option   Meaning
 ##   -------  ---------
-##   ``+``    All numbers (including positive ones) are preceeded by a sign.
-##   ``-``    Only negative numbers are preceeded by a sign.
-##   `SPACE`  Negative numbers are preceeded by a sign, positive numbers are preceeded by a space.
+##   ``+``    All numbers (including positive ones) are preceded by a sign.
+##   ``-``    Only negative numbers are preceded by a sign.
+##   `SPACE`  Negative numbers are preceded by a sign, positive numbers are preceded by a space.
 ##   =======  =========
 ##
 ## `#`
@@ -182,7 +182,7 @@
 ##         format ``f`` with precision `p-1-exp`. Otherwise the number
 ##         if formatted in scientific format ``e`` with precision
 ##         `p-1`. Trailing zeros are removed in all cases and the
-##         decimal point is removed as well if there are no remaing
+##         decimal point is removed as well if there are no remaining
 ##         digits following it.
 ##   ``G`` The same as ``g`` but works like ``E`` if scientific format
 ##         is used.
@@ -258,7 +258,7 @@
 ##   A number denoting the argument passed to `fmt`. The first
 ##   argument (after the format string) has number 0. This number can
 ##   be used to refer to a specific argument. The same argument can be
-##   refered by multiple replacement fields:
+##   referred by multiple replacement fields:
 ##
 ##   .. code-block:: nim
 ##     "{0} {1} {0}".fmt(1, 0)
@@ -267,11 +267,11 @@
 ##
 ##   If no argument number is given, the replacement fields refer to
 ##   the arguments passed to `fmt` in order. Note that this is an
-##   allways-or-never option: either *all* replacement fields use
+##   always-or-never option: either *all* replacement fields use
 ##   explicit argument numbers or none.
 ##
 ## `field`
-##   If the argument is a structered type (e.g. a tuple), this
+##   If the argument is a structured type (e.g. a tuple), this
 ##   specifies which field of the argument should be formatted, e.g.
 ##
 ##   .. code-block:: nim
@@ -480,7 +480,7 @@ type
     faPadding  ## right aligned, fill characters after sign (numbers only)
 
   FmtSign* = enum ## Format sign
-    fsMinus    ## only unary minus, no reservered sign space for positive numbers
+    fsMinus    ## only unary minus, no reserved sign space for positive numbers
     fsPlus     ## unary minus and unary plus
     fsSpace    ## unary minus and reserved space for positive numbers
 
@@ -502,7 +502,7 @@ type
     precision: int    ## floating point precision
     width: int        ## minimal width
     fill: string      ## the fill character, UTF8
-    align: FmtAlign  ## aligment
+    align: FmtAlign  ## alignment
     sign: FmtSign    ## sign notation
     baseprefix: bool  ## whether binary, octal, hex should be prefixed by 0b, 0x, 0o
     upcase: bool      ## upper case letters in hex or exponential formats
@@ -679,7 +679,7 @@ proc writefill(o: var Writer; fmt: Format; n: int; signum: int = 0) =
   ## `add`
   ##   output function
   ## `fmt`
-  ##   format to be used (important for padding aligment)
+  ##   format to be used (important for padding alignment)
   ## `n`
   ##   the number of filling characters to be written
   ## `signum`
@@ -816,7 +816,7 @@ proc writeformat*(o: var Writer; p: pointer; fmt: Format) =
   ## Write pointer `i` according to format `fmt` using output object
   ## `o` and output function `add`.
   ##
-  ## Pointers are casted to unsigned int and formated as hexadecimal
+  ## Pointers are casted to unsigned int and formatted as hexadecimal
   ## with prefix unless specified otherwise.
   var f = fmt
   if f.typ == 0.char:
@@ -1055,7 +1055,7 @@ proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
   ## Each part is either a literal string or a format specification. A
   ## format specification is a substring of the form
   ## "{[arg][:format]}" where `arg` is either empty or a number
-  ## refering to the arg-th argument and an additional field or array
+  ## referring to the `arg`-th argument and an additional field or array
   ## index. The format string is a string accepted by `parse`.
   result = @[]
   var pos = 0
@@ -1151,19 +1151,19 @@ proc literal[T](x: T): NimNode {.compiletime, nosideeffect.} =
 proc generatefmt(fmtstr: string;
                  args: var openarray[tuple[arg:NimNode, cnt:int]];
                  arg: var int;): seq[tuple[val, fmt:NimNode]] {.compiletime.} =
-  ## fmtstr
+  ## `fmtstr`
   ##   the format string
-  ## args
+  ## `args`
   ##   array of expressions for the arguments
-  ## arg
+  ## `arg`
   ##   the number of the next argument for automatic parsing
   ##
-  ## If arg is < 0 then the functions assumes that explicit numbering
+  ## If `arg` is < 0 then the function assumes that explicit numbering
   ## must be used, otherwise automatic numbering is used starting at
-  ## `arg`. The value of arg is updated according to the number of
-  ## arguments being used. If arg == 0 then automatic and manual
+  ## `arg`. The value of `arg` is updated according to the number of
+  ## arguments being used. If `arg == 0` then automatic and manual
   ## numbering is not decided (because no explicit manual numbering is
-  ## fixed und no automatically numbered argument has been used so
+  ## fixed and no automatically numbered argument has been used so
   ## far).
   ##
   ## The function returns a list of pairs `(val, fmt)` where `val` is
