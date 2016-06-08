@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2015 Frank Fischer <frank-fischer@shadow-soft.de>
+# Copyright (c) 2014, 2015, 2016 Frank Fischer <frank-fischer@shadow-soft.de>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -470,7 +470,7 @@ type
 
   Writer* = concept W
     ## Writer to output a character `c`.
-    write(W, char)
+    write(W, ' ')
 
   FmtAlign* = enum ## Format alignment
     faDefault  ## default for given format type
