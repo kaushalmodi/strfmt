@@ -855,12 +855,12 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
   of fcInf, fcNegInf:
     numstr[0..2] = ['f', 'n', 'i']
     numlen = 3
-  of fcZero, fcNegZero:
-    numstr[0] = '0'
-    numlen = 1
   else: # a usual fractional number
     if not (fmt.typ in {ftFix, ftPercent}): # not fixed point
-      exp = int(floor(log10(y)))
+      if y != 0:
+        exp = int(floor(log10(y)))
+      else:
+        exp = 0
       if fmt.typ == ftGen:
         if prec == 0: prec = 1
         if -4 <= exp and exp < prec:
@@ -1548,6 +1548,9 @@ when isMainModule:
   doassert negzero.format(".^-8") == "...-0..."
   doassert negzero.format("0=-8") == "-0000000"
   doassert negzero.format("-08") == "-0000000"
+
+  doassert zero.format("5.2e") == "0.00e+00"
+  doassert negzero.format("5.2e") == "-0.00e+00"
 
   doassert 123.456.format() == "123.456"
   doassert 123.45678.format() == "123.457"
