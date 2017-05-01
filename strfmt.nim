@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2015, 2016 Frank Fischer <frank-fischer@shadow-soft.de>
+# Copyright (c) 2014, 2015, 2016, 2017 Frank Fischer <frank-fischer@shadow-soft.de>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -1242,7 +1242,7 @@ proc addfmtfmt(fmtstr: string; args: NimNode; retvar: NimNode): NimNode {.compil
     if arg.cnt == 0:
       warning("Argument " & $(i+1) & " `" & args[i].repr & "` is not used in format string")
 
-macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
+macro fmt*(fmtstr: string{lit}; args: varargs[untyped]) : untyped =
   ## Formats arguments `args` according to the format string `fmtstr`.
   var retvar = gensym(nskVar, "ret")
   result = newNimNode(nnkStmtListExpr)
@@ -1250,31 +1250,31 @@ macro fmt*(fmtstr: string{lit}; args: varargs[expr]) : expr =
   result.add(addfmtfmt($fmtstr, args, retvar))
   result.add(retvar)
 
-macro writefmt*(f: File; fmtstr: string{lit}; args: varargs[expr]): expr =
+macro writefmt*(f: File; fmtstr: string{lit}; args: varargs[untyped]): untyped =
   ## The same as `write(f, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr, args, f)
 
-macro writelnfmt*(f: File; fmtstr: string{lit}; args: varargs[expr]): expr =
+macro writelnfmt*(f: File; fmtstr: string{lit}; args: varargs[untyped]): untyped =
   ## The same as `writeln(f, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr & "\n", args, f)
 
-macro printfmt*(fmtstr: string{lit}; args: varargs[expr]): expr =
+macro printfmt*(fmtstr: string{lit}; args: varargs[untyped]): untyped =
   ## The same as `writefmt(stdout, fmtstr, args...)`.
   result = addfmtfmt($fmtstr, args, bindsym"stdout")
 
-macro printlnfmt*(fmtstr: string{lit}; args: varargs[expr]): expr =
+macro printlnfmt*(fmtstr: string{lit}; args: varargs[untyped]): untyped =
   ## The same as `writelnfmt(stdout, fmtstr, args...)`.
   result = addfmtfmt($fmtstr & "\n", args, bindsym"stdout")
 
-macro writefmt*(s: Stream; fmtstr: string{lit}; args: varargs[expr]): expr =
+macro writefmt*(s: Stream; fmtstr: string{lit}; args: varargs[untyped]): untyped =
   ## The same as `write(s, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr, args, s)
 
-macro writelnfmt*(s: Stream; fmtstr: string{lit}; args: varargs[expr]): expr =
+macro writelnfmt*(s: Stream; fmtstr: string{lit}; args: varargs[untyped]): untyped =
   ## The same as `writeln(s, fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr & "\n", args, s)
 
-macro addfmt*(s: var string, fmtstr: string{lit}, args: varargs[expr]): expr =
+macro addfmt*(s: var string, fmtstr: string{lit}, args: varargs[untyped]): untyped =
   ## The same as `s.add(fmtstr.fmt(args...))` but faster.
   result = addfmtfmt($fmtstr, args, s)
 
@@ -1341,11 +1341,11 @@ proc geninterp(fmtstr: string): NimNode {.compileTime.} =
   for arg in args:
     result.add(arg)
 
-macro interp*(fmtstr: string{lit}): expr =
+macro interp*(fmtstr: string{lit}): untyped =
   ## Interpolate `fmtstr` with expressions.
   result = geninterp(fmtstr.strval)
 
-macro `$$`*(fmtstr: string{lit}): expr =
+macro `$$`*(fmtstr: string{lit}): untyped =
   ## Interpolate `fmtstr` with expressions.
   result = geninterp(fmtstr.strval)
 
