@@ -994,20 +994,21 @@ proc addformat*(s: var string; x: string) {.inline.} =
   ## appending unformatted strings.
   add(s, x)
 
-proc addformat*(f: File; x: string) {.inline.} =
-  ## Write `x` to `f`. This is a fast specialized version for
-  ## writing unformatted strings to a file.
-  write(f, x)
+when not defined(js):
+  proc addformat*(f: File; x: string) {.inline.} =
+    ## Write `x` to `f`. This is a fast specialized version for
+    ## writing unformatted strings to a file.
+    write(f, x)
 
-proc addformat*[T](f: File; x: T; fmt: Format = DefaultFmt) {.inline.} =
-  ## Write `x` to file `f` using format `fmt`.
-  var g = f
-  writeformat(g, x, fmt)
+  proc addformat*[T](f: File; x: T; fmt: Format = DefaultFmt) {.inline.} =
+    ## Write `x` to file `f` using format `fmt`.
+    var g = f
+    writeformat(g, x, fmt)
 
-proc addformat*[T](f: File; x: T; fmt: string) {.inline.} =
-  ## Write `x` to file `f` using format string `fmt`. This is the same
-  ## as `addformat(f, x, parse(fmt))`
-  addformat(f, x, parse(fmt))
+  proc addformat*[T](f: File; x: T; fmt: string) {.inline.} =
+    ## Write `x` to file `f` using format string `fmt`. This is the same
+    ## as `addformat(f, x, parse(fmt))`
+    addformat(f, x, parse(fmt))
 
 proc addformat*(s: Stream; x: string) {.inline.} =
   ## Write `x` to `s`. This is a fast specialized version for
@@ -1250,21 +1251,22 @@ macro fmt*(fmtstr: string{lit}; args: varargs[untyped]) : untyped =
   result.add(addfmtfmt($fmtstr, args, retvar))
   result.add(retvar)
 
-macro writefmt*(f: File; fmtstr: string{lit}; args: varargs[untyped]): untyped =
-  ## The same as `write(f, fmtstr.fmt(args...))` but faster.
-  result = addfmtfmt($fmtstr, args, f)
+when not defined(js):
+  macro writefmt*(f: File; fmtstr: string{lit}; args: varargs[untyped]): untyped =
+    ## The same as `write(f, fmtstr.fmt(args...))` but faster.
+    result = addfmtfmt($fmtstr, args, f)
 
-macro writelnfmt*(f: File; fmtstr: string{lit}; args: varargs[untyped]): untyped =
-  ## The same as `writeln(f, fmtstr.fmt(args...))` but faster.
-  result = addfmtfmt($fmtstr & "\n", args, f)
+  macro writelnfmt*(f: File; fmtstr: string{lit}; args: varargs[untyped]): untyped =
+    ## The same as `writeln(f, fmtstr.fmt(args...))` but faster.
+    result = addfmtfmt($fmtstr & "\n", args, f)
 
-macro printfmt*(fmtstr: string{lit}; args: varargs[untyped]): untyped =
-  ## The same as `writefmt(stdout, fmtstr, args...)`.
-  result = addfmtfmt($fmtstr, args, bindsym"stdout")
+  macro printfmt*(fmtstr: string{lit}; args: varargs[untyped]): untyped =
+    ## The same as `writefmt(stdout, fmtstr, args...)`.
+    result = addfmtfmt($fmtstr, args, bindsym"stdout")
 
-macro printlnfmt*(fmtstr: string{lit}; args: varargs[untyped]): untyped =
-  ## The same as `writelnfmt(stdout, fmtstr, args...)`.
-  result = addfmtfmt($fmtstr & "\n", args, bindsym"stdout")
+  macro printlnfmt*(fmtstr: string{lit}; args: varargs[untyped]): untyped =
+    ## The same as `writelnfmt(stdout, fmtstr, args...)`.
+    result = addfmtfmt($fmtstr & "\n", args, bindsym"stdout")
 
 macro writefmt*(s: Stream; fmtstr: string{lit}; args: varargs[untyped]): untyped =
   ## The same as `write(s, fmtstr.fmt(args...))` but faster.
