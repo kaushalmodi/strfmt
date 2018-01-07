@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2015, 2016, 2017 Frank Fischer <frank-fischer@shadow-soft.de>
+# Copyright (c) 2014, 2015, 2016, 2017, 2018 Frank Fischer <frank-fischer@shadow-soft.de>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -774,14 +774,15 @@ proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
   if fmt.sign != fsMinus or i < 0: len.inc
 
   var x: type(i) = abs(i)
-  var irev: type(i) = 0
+  var istr: array[0..31, uint8]
   var ilen = 0
   while x > 0.SomeInteger:
+    istr[ilen] = (x mod base).uint8
     len.inc
     ilen.inc
-    irev = irev * base + x mod base
     x = x div base
   if ilen == 0:
+    istr[ilen] = 0
     ilen.inc
     len.inc
 
@@ -802,8 +803,7 @@ proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
       raise newException(FormatError, "# only allowed with b, o, x or X")
   while ilen > 0:
     ilen.dec
-    let c = irev mod base
-    irev = irev div base
+    let c = istr[ilen]
     if c < 10:
       write(o, ('0'.int + c.int).char)
     elif fmt.upcase:
@@ -1352,6 +1352,12 @@ macro `$$`*(fmtstr: string{lit}): untyped =
   result = geninterp(fmtstr.strval)
 
 when isMainModule:
+  type
+    Test = object
+      a: uint8
+      b: uint8
+      c: uint8
+
   # string with 's'
   doassert "hello".format("s") == "hello"
   doassert "hello".format("10s") == "hello     "
@@ -1608,6 +1614,8 @@ when isMainModule:
 
   doassert "{0.name:.^10} {0.age}".fmt((name:"john", age:27)) == "...john... 27"
   doassert "{0[1]:.^10} {0[0]}".fmt(["27", "john"]) == "...john... 27"
+
+  doassert("{} {}".fmt(125u8, 254u8) == "125 254");
 
   var x = 0
   doassert "{0} {0}".fmt((x.inc; x)) == "1 1"
