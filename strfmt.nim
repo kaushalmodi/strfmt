@@ -118,7 +118,7 @@
 ##   at least `width` characters have been written.
 ##
 ## `,`
-##   Currently ignored.
+##   Add , as a thousands separator
 ##
 ## `precision`
 ##   The meaning of the precision field depends on the formatting
@@ -599,7 +599,7 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
   # comma
   if pos < n and fmt[pos] == ',':
     result.comma = true
-    # warning("Comma ',' in format string is currently ignored")
+    pos.inc
 
   # precision
   if pos < n and fmt[pos] == '.':
@@ -776,7 +776,12 @@ proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
   var x: type(i) = abs(i)
   var istr: array[0..31, uint8]
   var ilen = 0
+  const COMMA = 42.uint8 # a marker for a comma
   while x > 0.SomeInteger:
+    if fmt.comma and ilen mod 4 == 3:
+      istr[ilen] = COMMA
+      ilen.inc
+      len.inc
     istr[ilen] = (x mod base).uint8
     len.inc
     ilen.inc
@@ -806,6 +811,8 @@ proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
     let c = istr[ilen]
     if c < 10:
       write(o, ('0'.int + c.int).char)
+    elif c == COMMA:
+      write(o, ',')
     elif fmt.upcase:
       write(o, ('A'.int + c.int - 10).char)
     else:
@@ -887,6 +894,9 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
     var fr = ((y - num.SomeReal) * mult.SomeReal).int64
     # build integer part string
     while num != 0:
+      if fmt.comma and numlen mod 4 == 3:
+        numstr[numlen] = ','
+        numlen.inc
       numstr[numlen] = ('0'.int + (num mod 10)).char
       numlen.inc
       num = num div 10
@@ -1408,6 +1418,13 @@ when isMainModule:
   doassert 42.format("0>-8") == "00000042"
   doassert 42.format(".^-8") == "...42..."
   doassert 42.format("-08") == "00000042"
+  doassert 999.format(",") == "999"
+  doassert 1000.format(",") == "1,000"
+  doassert 123456.format(",") == "123,456"
+  doassert 1234567.format(",") == "1,234,567"
+  doassert 1234567.format("7,") == "1,234,567"
+  doassert 1234567.format("10,") == " 1,234,567"
+  doassert 1234567.format("011,") == "001,234,567"
 
   doassert((-42).format(".<8") == "-42.....")
   doassert((-42).format(".>8") == ".....-42")
@@ -1574,6 +1591,12 @@ when isMainModule:
   doassert 123.456.format(".2G") == "1.2E+02"
   doassert 123.456.format(".3g") == "123"
   doassert 123.456.format(".10g") == "123.456"
+  doassert 1234.56.format(".10g") == "1234.56"
+  doassert 1234.56.format(",.10g") == "1,234.56"
+  doassert 123456.789.format(",.10g") == "123,456.789"
+  doassert 1234567.89.format(",.10g") == "1,234,567.89"
+  doassert 1234567.89.format(",.3f") == "1,234,567.890"
+  doassert 1234567.89.format("15,.3f") == "  1,234,567.890"
   doassert 0.00123456.format("f") == "0.001235"
   doassert 0.00123456.format("e") == "1.234560e-03"
   doassert 0.00123456.format("g") == "0.00123456"
