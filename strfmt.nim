@@ -1365,9 +1365,22 @@ when isMainModule:
   import unittest
 
   suite "Strings":
-    test "string with 's'":
+    test "string with 's' -- format string length = 0":
+      check:
+        "hello".format() == "hello"
+        "hello".format("") == "hello"
+
+    test "string with 's' -- format string length = 1":
       check:
         "hello".format("s") == "hello"
+
+    test "string with 's' -- format string length >= 2":
+      check:
+        "hi".format("0s") == "hi"
+        "hi".format("1s") == "hi"
+        "hi".format("2s") == "hi"
+        "hi".format("3s") == "hi "
+        "hi".format("4s") == "hi  "
         "hello".format("10s") == "hello     "
         "hello".format("<10s") == "hello     "
         "hello".format(">10s") == "     hello"
@@ -1398,11 +1411,14 @@ when isMainModule:
 
 
   suite "Integers":
+    test "positive integers -- format string length = 1":
+      check:
+        42.format("8") == "      42"
+
     test "positive integers":
       check:
         42.format() == "42"
         42.format("") == "42"
-        42.format("8") == "      42"
         42.format("<8") == "42      "
         42.format(">8") == "      42"
         42.format("^8") == "   42   "
@@ -1424,14 +1440,22 @@ when isMainModule:
         42.format("0>-8") == "00000042"
         42.format(".^-8") == "...42..."
         42.format("-08") == "00000042"
+
+    test "positive integers with sign prefix":
+      check:
+        0.format("+") == "+0"
+        123.format("+") == "+123"
+
+    test "positive integers with commas":
+      check:
         999.format(",") == "999"
         1000.format(",") == "1,000"
         123456.format(",") == "123,456"
         1234567.format(",") == "1,234,567"
+
         1234567.format("7,") == "1,234,567"
         1234567.format("10,") == " 1,234,567"
         1234567.format("011,") == "001,234,567"
-        0.format("+") == "+0"
 
     test "negative integers":
       check:
@@ -1453,28 +1477,40 @@ when isMainModule:
         (-42).format("0=-8") == "-0000042"
         (-42).format("-08") == "-0000042"
 
-    test "hex":
+    test "hex -- format string length = 1":
       check:
         0x1f5.format("x") == "1f5"
         0x1f5.format("X") == "1F5"
+
+    test "hex -- format string length >= 2":
+      check:
         0x1f5.format("#x") == "0x1f5"
         0x1f5.format("#X") == "0x1F5"
 
-    test "binary":
+    test "binary -- format string length = 1":
       check:
         42.format("b") == "101010"
+
+    test "binary -- format string length >= 2":
+      check:
         42.format("#b") == "0b101010"
 
-    test "octal":
+    test "octal -- format string length = 1":
       check:
         0x1f5.format("o") == "765"
+
+    test "octal -- format string length >= 2":
+      check:
         0x1f5.format("#o") == "0o765"
 
 
   suite "Characters":
-    test "one char":
+    test "char -- format string length = 1":
       check:
         'a'.format("c") == "a"
+
+    test "char -- format string length >= 2":
+      check:
         'a'.format("6c") == "a     "
         'a'.format("<6c") == "a     "
         'a'.format(">6c") == "     a"
@@ -1487,30 +1523,39 @@ when isMainModule:
 
 
   suite "Runes":
-    test "one rune":
+    test "rune -- format string length = 1":
       check:
-        "ß".runeat(0).format("c") == "ß"
-        "ß".runeat(0).format("6c") == "ß     "
-        "ß".runeat(0).format("<6c") == "ß     "
-        "ß".runeat(0).format(">6c") == "     ß"
-        "ß".runeat(0).format("^6c") == "  ß   "
-        "ß".runeat(0).format("^7c") == "   ß   "
-        "ß".runeat(0).format(".<6c") == "ß....."
-        "ß".runeat(0).format("ä>6c") == "äääääß"
-        "ß".runeat(0).format(".^6c") == "..ß..."
-        "ß".runeat(0).format(".^7c") == "...ß..."
+        "ß".runeAt(0).format("c") == "ß"
+
+    test "rune -- format string length >= 2":
+      check:
+        "ß".runeAt(0).format("6c") == "ß     "
+        "ß".runeAt(0).format("<6c") == "ß     "
+        "ß".runeAt(0).format(">6c") == "     ß"
+        "ß".runeAt(0).format("^6c") == "  ß   "
+        "ß".runeAt(0).format("^7c") == "   ß   "
+        "ß".runeAt(0).format(".<6c") == "ß....."
+        "ß".runeAt(0).format("ä>6c") == "äääääß"
+        "ß".runeAt(0).format(".^6c") == "..ß..."
+        "ß".runeAt(0).format(".^7c") == "...ß..."
 
 
   suite "Floats":
     setup:
       const
         zero = 0.0
-        negzero = zero * -1
+        negZero = zero * -1
 
-    test "positive infinity":
+    test "positive infinity -- format string length = 0":
       check:
         Inf.format("") == "inf"
+
+    test "positive infinity -- format string length = 1":
+      check:
         Inf.format("8") == "     inf"
+
+    test "positive infinity -- format string length >= 2":
+      check:
         Inf.format("<8") == "inf     "
         Inf.format(">8") == "     inf"
         Inf.format("^8") == "  inf   "
@@ -1534,10 +1579,16 @@ when isMainModule:
         Inf.format("0=-8") == "00000inf"
         Inf.format("-08") == "00000inf"
 
-    test "negative infinity":
+    test "negative infinity -- format string length = 0":
       check:
         NegInf.format("") == "-inf"
+
+    test "negative infinity -- format string length = 1":
+      check:
         NegInf.format("8") == "    -inf"
+
+    test "negative infinity -- format string length >= 2":
+      check:
         NegInf.format("<8") == "-inf    "
         NegInf.format(">8") == "    -inf"
         NegInf.format("^8") == "  -inf  "
@@ -1582,45 +1633,63 @@ when isMainModule:
         0.0.format("-08") == "00000000"
         zero.format("5.2e") == "0.00e+00"
 
-    test "negative 0.0":
+    test "negative 0.0 -- format string length = 0":
       check:
-        negzero.format("") == "-0"
-        negzero.format("8") == "      -0"
-        negzero.format("<8") == "-0      "
-        negzero.format(">8") == "      -0"
-        negzero.format("^8") == "   -0   "
-        negzero.format("=8") == "-      0"
+        negZero.format("") == "-0"
 
-        negzero.format(".<8") == "-0......"
-        negzero.format(".>8") == "......-0"
-        negzero.format(".^8") == "...-0..."
-        negzero.format(".=8") == "-......0"
-        negzero.format(".< 8") == "-0......"
-        negzero.format(".> 8") == "......-0"
-        negzero.format(".^ 8") == "...-0..."
-        negzero.format(".= 8") == "-......0"
-        negzero.format(".<+8") == "-0......"
-        negzero.format(".>+8") == "......-0"
-        negzero.format(".^+8") == "...-0..."
-        negzero.format(".=+8") == "-......0"
-        negzero.format(".<-8") == "-0......"
-        negzero.format("0>-8") == "000000-0"
-        negzero.format(".^-8") == "...-0..."
-        negzero.format("0=-8") == "-0000000"
-        negzero.format("-08") == "-0000000"
+    test "negative 0.0 -- format string length = 1":
+      check:
+        negZero.format("8") == "      -0"
 
-        negzero.format("5.2e") == "-0.00e+00"
+    test "negative 0.0 -- format string length >= 2":
+      check:
+        negZero.format("<8") == "-0      "
+        negZero.format(">8") == "      -0"
+        negZero.format("^8") == "   -0   "
+        negZero.format("=8") == "-      0"
 
-    test "more floats":
+        negZero.format(".<8") == "-0......"
+        negZero.format(".>8") == "......-0"
+        negZero.format(".^8") == "...-0..."
+        negZero.format(".=8") == "-......0"
+        negZero.format(".< 8") == "-0......"
+        negZero.format(".> 8") == "......-0"
+        negZero.format(".^ 8") == "...-0..."
+        negZero.format(".= 8") == "-......0"
+        negZero.format(".<+8") == "-0......"
+        negZero.format(".>+8") == "......-0"
+        negZero.format(".^+8") == "...-0..."
+        negZero.format(".=+8") == "-......0"
+        negZero.format(".<-8") == "-0......"
+        negZero.format("0>-8") == "000000-0"
+        negZero.format(".^-8") == "...-0..."
+        negZero.format("0=-8") == "-0000000"
+        negZero.format("-08") == "-0000000"
+
+        negZero.format("5.2e") == "-0.00e+00"
+
+    test "more floats -- format string length = 0":
       check:
         123.456.format() == "123.456"
         123.45678.format() == "123.457"
+
+    test "more floats -- format string length = 1":
+      check:
         123.456.format("f") == "123.456000"
-        123.456.format(".2f") == "123.46"
-        123.456.format("8.2f") == "  123.46"
         123.456.format("e") == "1.234560e+02"
         123.456.format("E") == "1.234560E+02"
         1.0.format("e") == "1.000000e+00"
+        0.00123456.format("f") == "0.001235"
+        0.00123456.format("e") == "1.234560e-03"
+        0.00123456.format("g") == "0.00123456"
+        0.000123456.format("g") == "0.000123456"
+        0.0000123456.format("g") == "1.23456e-05"
+        0.3.format("%") == "30.000000%"
+
+    test "more floats -- format string length >= 2":
+      check:
+        123.456.format(".2f") == "123.46"
+        123.456.format("8.2f") == "  123.46"
         123.456.format(".2e") == "1.23e+02"
         123.456.format(".<10.2e") == "1.23e+02.."
         123.456.format(".2g") == "1.2e+02"
@@ -1633,26 +1702,23 @@ when isMainModule:
         1234567.89.format(",.10g") == "1,234,567.89"
         1234567.89.format(",.3f") == "1,234,567.890"
         1234567.89.format("15,.3f") == "  1,234,567.890"
-        0.00123456.format("f") == "0.001235"
-        0.00123456.format("e") == "1.234560e-03"
-        0.00123456.format("g") == "0.00123456"
         0.00123456.format(".4g") == "0.001235"
         0.00123456.format(".1g") == "0.001"
-        0.000123456.format("g") == "0.000123456"
-        0.0000123456.format("g") == "1.23456e-05"
         0.0000123456.format(".3g") == "1.23e-05"
         0.0000123456.format("0=+10.3g") == "+01.23e-05"
         0.0000123456.format("0= 10.3g") == " 01.23e-05"
         (-0.0000123456).format("0=10.3") == "-01.23e-05"
-        0.3.format("%") == "30.000000%"
         0.3.format(".2%") == "30.00%"
 
 
   suite "Booleans":
-    test "booleans":
+    test "booleans -- format string length = 0":
       check:
         true.format("") == "true"
         false.format("") == "false"
+
+    test "booleans -- format string length = 1":
+      check:
         true.format("s") == "true"
         false.format("s") == "false"
         true.format("d") == "1"
