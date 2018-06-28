@@ -1362,302 +1362,354 @@ macro `$$`*(fmtstr: string{lit}): untyped =
   result = geninterp(fmtstr.strval)
 
 when isMainModule:
-  type
-    Test = object
-      a: uint8
-      b: uint8
-      c: uint8
+  import unittest
 
-  # string with 's'
-  doassert "hello".format("s") == "hello"
-  doassert "hello".format("10s") == "hello     "
-  doassert "hello".format("<10s") == "hello     "
-  doassert "hello".format(">10s") == "     hello"
-  doassert "hello".format("^10s") == "  hello   "
-  doassert "hello".format("^11s") == "   hello   "
-  doassert "hello".format(".<10s") == "hello....."
-  doassert "hello".format("ä>10s") == "ääääähello"
-  doassert "hello".format(".^10s") == "..hello..."
-  doassert "hello".format(".^11s") == "...hello..."
+  suite "Strings":
+    test "string with 's'":
+      check:
+        "hello".format("s") == "hello"
+        "hello".format("10s") == "hello     "
+        "hello".format("<10s") == "hello     "
+        "hello".format(">10s") == "     hello"
+        "hello".format("^10s") == "  hello   "
+        "hello".format("^11s") == "   hello   "
+        "hello".format(".<10s") == "hello....."
+        "hello".format("ä>10s") == "ääääähello"
+        "hello".format(".^10s") == "..hello..."
+        "hello".format(".^11s") == "...hello..."
 
-  # string without 's'
-  doassert "hällobello".format("") == "hällobello"
-  doassert "hällo".format("") == "hällo"
-  doassert "hällo".format("10") == "hällo     "
-  doassert "hällo".format("<10") == "hällo     "
-  doassert "hällo".format(">10") == "     hällo"
-  doassert "hällo".format("^10") == "  hällo   "
-  doassert "hällo".format("^11") == "   hällo   "
-  doassert "hällo".format(".<10") == "hällo....."
-  doassert "hällo".format(".>10") == ".....hällo"
-  doassert "hällo".format(".^10") == "..hällo..."
-  doassert "hällo".format("ü^11") == "üüühälloüüü"
+    test "string without 's'":
+      check:
+        "hällobello".format("") == "hällobello"
+        "hällo".format("") == "hällo"
+        "hällo".format("10") == "hällo     "
+        "hällo".format("<10") == "hällo     "
+        "hällo".format(">10") == "     hällo"
+        "hällo".format("^10") == "  hällo   "
+        "hällo".format("^11") == "   hällo   "
+        "hällo".format(".<10") == "hällo....."
+        "hällo".format(".>10") == ".....hällo"
+        "hällo".format(".^10") == "..hällo..."
+        "hällo".format("ü^11") == "üüühälloüüü"
 
-  # integer
-  doassert 42.format() == "42"
-  doassert 42.format("") == "42"
-  doassert 42.format("8") == "      42"
-  doassert 42.format("<8") == "42      "
-  doassert 42.format(">8") == "      42"
-  doassert 42.format("^8") == "   42   "
-  doassert 42.format("=8") == "      42"
+    test "string truncation using X.Y format":
+      check:
+        "123456".format("10.3") == "123       "
 
-  doassert 42.format(".<8") == "42......"
-  doassert 42.format(".>8") == "......42"
-  doassert 42.format(".^8") == "...42..."
-  doassert 42.format(".=8") == "......42"
-  doassert 42.format(".< 8") == " 42....."
-  doassert 42.format(".> 8") == "..... 42"
-  doassert 42.format(".^ 8") == ".. 42..."
-  doassert 42.format(".= 8") == " .....42"
-  doassert 42.format(".<+8") == "+42....."
-  doassert 42.format(".>+8") == ".....+42"
-  doassert 42.format(".^+8") == "..+42..."
-  doassert 42.format(".=+8") == "+.....42"
-  doassert 42.format(".<-8") == "42......"
-  doassert 42.format("0>-8") == "00000042"
-  doassert 42.format(".^-8") == "...42..."
-  doassert 42.format("-08") == "00000042"
-  doassert 999.format(",") == "999"
-  doassert 1000.format(",") == "1,000"
-  doassert 123456.format(",") == "123,456"
-  doassert 1234567.format(",") == "1,234,567"
-  doassert 1234567.format("7,") == "1,234,567"
-  doassert 1234567.format("10,") == " 1,234,567"
-  doassert 1234567.format("011,") == "001,234,567"
 
-  doassert((-42).format(".<8") == "-42.....")
-  doassert((-42).format(".>8") == ".....-42")
-  doassert((-42).format(".^8") == "..-42...")
-  doassert((-42).format(".=8") == "-.....42")
-  doassert((-42).format(".< 8") == "-42.....")
-  doassert((-42).format(".> 8") == ".....-42")
-  doassert((-42).format(".^ 8") == "..-42...")
-  doassert((-42).format(".= 8") == "-.....42")
-  doassert((-42).format(".<+8") == "-42.....")
-  doassert((-42).format(".>+8") == ".....-42")
-  doassert((-42).format(".^+8") == "..-42...")
-  doassert((-42).format(".=+8") == "-.....42")
-  doassert((-42).format(".<-8") == "-42.....")
-  doassert((-42).format(".>-8") == ".....-42")
-  doassert((-42).format(".^-8") == "..-42...")
-  doassert((-42).format("0=-8") == "-0000042")
-  doassert((-42).format("-08") == "-0000042")
+  suite "Integers":
+    test "positive integers":
+      check:
+        42.format() == "42"
+        42.format("") == "42"
+        42.format("8") == "      42"
+        42.format("<8") == "42      "
+        42.format(">8") == "      42"
+        42.format("^8") == "   42   "
+        42.format("=8") == "      42"
 
-  doassert 0x1f5.format("x") == "1f5"
-  doassert 0x1f5.format("X") == "1F5"
-  doassert 0x1f5.format("o") == "765"
-  doassert 42.format("b") == "101010"
-  doassert 0x1f5.format("#x") == "0x1f5"
-  doassert 0x1f5.format("#X") == "0x1F5"
-  doassert 0x1f5.format("#o") == "0o765"
-  doassert 42.format("#b") == "0b101010"
-  doassert 0.format("+") == "+0"
+        42.format(".<8") == "42......"
+        42.format(".>8") == "......42"
+        42.format(".^8") == "...42..."
+        42.format(".=8") == "......42"
+        42.format(".< 8") == " 42....."
+        42.format(".> 8") == "..... 42"
+        42.format(".^ 8") == ".. 42..."
+        42.format(".= 8") == " .....42"
+        42.format(".<+8") == "+42....."
+        42.format(".>+8") == ".....+42"
+        42.format(".^+8") == "..+42..."
+        42.format(".=+8") == "+.....42"
+        42.format(".<-8") == "42......"
+        42.format("0>-8") == "00000042"
+        42.format(".^-8") == "...42..."
+        42.format("-08") == "00000042"
+        999.format(",") == "999"
+        1000.format(",") == "1,000"
+        123456.format(",") == "123,456"
+        1234567.format(",") == "1,234,567"
+        1234567.format("7,") == "1,234,567"
+        1234567.format("10,") == " 1,234,567"
+        1234567.format("011,") == "001,234,567"
+        0.format("+") == "+0"
 
-  doassert 'a'.format("c") == "a"
-  doassert 'a'.format("6c") == "a     "
-  doassert 'a'.format("<6c") == "a     "
-  doassert 'a'.format(">6c") == "     a"
-  doassert 'a'.format("^6c") == "  a   "
-  doassert 'a'.format("^7c") == "   a   "
-  doassert 'a'.format(".<6c") == "a....."
-  doassert 'a'.format("ä>6c") == "äääääa"
-  doassert 'a'.format(".^6c") == "..a..."
-  doassert 'a'.format(".^7c") == "...a..."
+    test "negative integers":
+      check:
+        (-42).format(".<8") == "-42....."
+        (-42).format(".>8") == ".....-42"
+        (-42).format(".^8") == "..-42..."
+        (-42).format(".=8") == "-.....42"
+        (-42).format(".< 8") == "-42....."
+        (-42).format(".> 8") == ".....-42"
+        (-42).format(".^ 8") == "..-42..."
+        (-42).format(".= 8") == "-.....42"
+        (-42).format(".<+8") == "-42....."
+        (-42).format(".>+8") == ".....-42"
+        (-42).format(".^+8") == "..-42..."
+        (-42).format(".=+8") == "-.....42"
+        (-42).format(".<-8") == "-42....."
+        (-42).format(".>-8") == ".....-42"
+        (-42).format(".^-8") == "..-42..."
+        (-42).format("0=-8") == "-0000042"
+        (-42).format("-08") == "-0000042"
 
-  doassert "ß".runeat(0).format("c") == "ß"
-  doassert "ß".runeat(0).format("6c") == "ß     "
-  doassert "ß".runeat(0).format("<6c") == "ß     "
-  doassert "ß".runeat(0).format(">6c") == "     ß"
-  doassert "ß".runeat(0).format("^6c") == "  ß   "
-  doassert "ß".runeat(0).format("^7c") == "   ß   "
-  doassert "ß".runeat(0).format(".<6c") == "ß....."
-  doassert "ß".runeat(0).format("ä>6c") == "äääääß"
-  doassert "ß".runeat(0).format(".^6c") == "..ß..."
-  doassert "ß".runeat(0).format(".^7c") == "...ß..."
+    test "hex":
+      check:
+        0x1f5.format("x") == "1f5"
+        0x1f5.format("X") == "1F5"
+        0x1f5.format("#x") == "0x1f5"
+        0x1f5.format("#X") == "0x1F5"
 
-  doassert "123456".format("10.3") == "123       "
+    test "binary":
+      check:
+        42.format("b") == "101010"
+        42.format("#b") == "0b101010"
 
-  doassert Inf.format("") == "inf"
-  doassert Inf.format("8") == "     inf"
-  doassert Inf.format("<8") == "inf     "
-  doassert Inf.format(">8") == "     inf"
-  doassert Inf.format("^8") == "  inf   "
-  doassert Inf.format("=8") == "     inf"
+    test "octal":
+      check:
+        0x1f5.format("o") == "765"
+        0x1f5.format("#o") == "0o765"
 
-  doassert Inf.format(".<8") == "inf....."
-  doassert Inf.format(".>8") == ".....inf"
-  doassert Inf.format(".^8") == "..inf..."
-  doassert Inf.format(".=8") == ".....inf"
-  doassert Inf.format(".< 8") == " inf...."
-  doassert Inf.format(".> 8") == ".... inf"
-  doassert Inf.format(".^ 8") == ".. inf.."
-  doassert Inf.format(".= 8") == " ....inf"
-  doassert Inf.format(".<+8") == "+inf...."
-  doassert Inf.format(".>+8") == "....+inf"
-  doassert Inf.format(".^+8") == "..+inf.."
-  doassert Inf.format(".=+8") == "+....inf"
-  doassert Inf.format(".<-8") == "inf....."
-  doassert Inf.format("0>-8") == "00000inf"
-  doassert Inf.format(".^-8") == "..inf..."
-  doassert Inf.format("0=-8") == "00000inf"
-  doassert Inf.format("-08") == "00000inf"
 
-  doassert NegInf.format("") == "-inf"
-  doassert NegInf.format("8") == "    -inf"
-  doassert NegInf.format("<8") == "-inf    "
-  doassert NegInf.format(">8") == "    -inf"
-  doassert NegInf.format("^8") == "  -inf  "
-  doassert NegInf.format("=8") == "-    inf"
+  suite "Characters":
+    test "one char":
+      check:
+        'a'.format("c") == "a"
+        'a'.format("6c") == "a     "
+        'a'.format("<6c") == "a     "
+        'a'.format(">6c") == "     a"
+        'a'.format("^6c") == "  a   "
+        'a'.format("^7c") == "   a   "
+        'a'.format(".<6c") == "a....."
+        'a'.format("ä>6c") == "äääääa"
+        'a'.format(".^6c") == "..a..."
+        'a'.format(".^7c") == "...a..."
 
-  doassert NegInf.format(".<8") == "-inf...."
-  doassert NegInf.format(".>8") == "....-inf"
-  doassert NegInf.format(".^8") == "..-inf.."
-  doassert NegInf.format(".=8") == "-....inf"
-  doassert NegInf.format(".< 8") == "-inf...."
-  doassert NegInf.format(".> 8") == "....-inf"
-  doassert NegInf.format(".^ 8") == "..-inf.."
-  doassert NegInf.format(".= 8") == "-....inf"
-  doassert NegInf.format(".<+8") == "-inf...."
-  doassert NegInf.format(".>+8") == "....-inf"
-  doassert NegInf.format(".^+8") == "..-inf.."
-  doassert NegInf.format(".=+8") == "-....inf"
-  doassert NegInf.format(".<-8") == "-inf...."
-  doassert NegInf.format("0>-8") == "0000-inf"
-  doassert NegInf.format(".^-8") == "..-inf.."
-  doassert NegInf.format("0=-8") == "-0000inf"
-  doassert NegInf.format("-08") == "-0000inf"
 
-  doassert 0.0.format(".<8") == "0......."
-  doassert 0.0.format(".>8") == ".......0"
-  doassert 0.0.format(".^8") == "...0...."
-  doassert 0.0.format(".=8") == ".......0"
-  doassert 0.0.format(".< 8") == " 0......"
-  doassert 0.0.format(".> 8") == "...... 0"
-  doassert 0.0.format(".^ 8") == "... 0..."
-  doassert 0.0.format(".= 8") == " ......0"
-  doassert 0.0.format(".<+8") == "+0......"
-  doassert 0.0.format(".>+8") == "......+0"
-  doassert 0.0.format(".^+8") == "...+0..."
-  doassert 0.0.format(".=+8") == "+......0"
-  doassert 0.0.format(".<-8") == "0......."
-  doassert 0.0.format("0>-8") == "00000000"
-  doassert 0.0.format(".^-8") == "...0...."
-  doassert 0.0.format("0=-8") == "00000000"
-  doassert 0.0.format("-08") == "00000000"
+  suite "Runes":
+    test "one rune":
+      check:
+        "ß".runeat(0).format("c") == "ß"
+        "ß".runeat(0).format("6c") == "ß     "
+        "ß".runeat(0).format("<6c") == "ß     "
+        "ß".runeat(0).format(">6c") == "     ß"
+        "ß".runeat(0).format("^6c") == "  ß   "
+        "ß".runeat(0).format("^7c") == "   ß   "
+        "ß".runeat(0).format(".<6c") == "ß....."
+        "ß".runeat(0).format("ä>6c") == "äääääß"
+        "ß".runeat(0).format(".^6c") == "..ß..."
+        "ß".runeat(0).format(".^7c") == "...ß..."
 
-  var zero = 0.0
-  var negzero = zero * -1
 
-  doassert negzero.format("") == "-0"
-  doassert negzero.format("8") == "      -0"
-  doassert negzero.format("<8") == "-0      "
-  doassert negzero.format(">8") == "      -0"
-  doassert negzero.format("^8") == "   -0   "
-  doassert negzero.format("=8") == "-      0"
+  suite "Floats":
+    setup:
+      const
+        zero = 0.0
+        negzero = zero * -1
 
-  doassert negzero.format(".<8") == "-0......"
-  doassert negzero.format(".>8") == "......-0"
-  doassert negzero.format(".^8") == "...-0..."
-  doassert negzero.format(".=8") == "-......0"
-  doassert negzero.format(".< 8") == "-0......"
-  doassert negzero.format(".> 8") == "......-0"
-  doassert negzero.format(".^ 8") == "...-0..."
-  doassert negzero.format(".= 8") == "-......0"
-  doassert negzero.format(".<+8") == "-0......"
-  doassert negzero.format(".>+8") == "......-0"
-  doassert negzero.format(".^+8") == "...-0..."
-  doassert negzero.format(".=+8") == "-......0"
-  doassert negzero.format(".<-8") == "-0......"
-  doassert negzero.format("0>-8") == "000000-0"
-  doassert negzero.format(".^-8") == "...-0..."
-  doassert negzero.format("0=-8") == "-0000000"
-  doassert negzero.format("-08") == "-0000000"
+    test "positive infinity":
+      check:
+        Inf.format("") == "inf"
+        Inf.format("8") == "     inf"
+        Inf.format("<8") == "inf     "
+        Inf.format(">8") == "     inf"
+        Inf.format("^8") == "  inf   "
+        Inf.format("=8") == "     inf"
 
-  doassert zero.format("5.2e") == "0.00e+00"
-  doassert negzero.format("5.2e") == "-0.00e+00"
+        Inf.format(".<8") == "inf....."
+        Inf.format(".>8") == ".....inf"
+        Inf.format(".^8") == "..inf..."
+        Inf.format(".=8") == ".....inf"
+        Inf.format(".< 8") == " inf...."
+        Inf.format(".> 8") == ".... inf"
+        Inf.format(".^ 8") == ".. inf.."
+        Inf.format(".= 8") == " ....inf"
+        Inf.format(".<+8") == "+inf...."
+        Inf.format(".>+8") == "....+inf"
+        Inf.format(".^+8") == "..+inf.."
+        Inf.format(".=+8") == "+....inf"
+        Inf.format(".<-8") == "inf....."
+        Inf.format("0>-8") == "00000inf"
+        Inf.format(".^-8") == "..inf..."
+        Inf.format("0=-8") == "00000inf"
+        Inf.format("-08") == "00000inf"
 
-  doassert 123.456.format() == "123.456"
-  doassert 123.45678.format() == "123.457"
-  doassert 123.456.format("f") == "123.456000"
-  doassert 123.456.format(".2f") == "123.46"
-  doassert 123.456.format("8.2f") == "  123.46"
-  doassert 123.456.format("e") == "1.234560e+02"
-  doassert 123.456.format("E") == "1.234560E+02"
-  doassert 1.0.format("e") == "1.000000e+00"
-  doassert 123.456.format(".2e") == "1.23e+02"
-  doassert 123.456.format(".<10.2e") == "1.23e+02.."
-  doassert 123.456.format(".2g") == "1.2e+02"
-  doassert 123.456.format(".2G") == "1.2E+02"
-  doassert 123.456.format(".3g") == "123"
-  doassert 123.456.format(".10g") == "123.456"
-  doassert 1234.56.format(".10g") == "1234.56"
-  doassert 1234.56.format(",.10g") == "1,234.56"
-  doassert 123456.789.format(",.10g") == "123,456.789"
-  doassert 1234567.89.format(",.10g") == "1,234,567.89"
-  doassert 1234567.89.format(",.3f") == "1,234,567.890"
-  doassert 1234567.89.format("15,.3f") == "  1,234,567.890"
-  doassert 0.00123456.format("f") == "0.001235"
-  doassert 0.00123456.format("e") == "1.234560e-03"
-  doassert 0.00123456.format("g") == "0.00123456"
-  doassert 0.00123456.format(".4g") == "0.001235"
-  doassert 0.00123456.format(".1g") == "0.001"
-  doassert 0.000123456.format("g") == "0.000123456"
-  doassert 0.0000123456.format("g") == "1.23456e-05"
-  doassert 0.0000123456.format(".3g") == "1.23e-05"
-  doassert 0.0000123456.format("0=+10.3g") == "+01.23e-05"
-  doassert 0.0000123456.format("0= 10.3g") == " 01.23e-05"
-  doassert((-0.0000123456).format("0=10.3") == "-01.23e-05")
-  doassert 0.3.format("%") == "30.000000%"
-  doassert 0.3.format(".2%") == "30.00%"
+    test "negative infinity":
+      check:
+        NegInf.format("") == "-inf"
+        NegInf.format("8") == "    -inf"
+        NegInf.format("<8") == "-inf    "
+        NegInf.format(">8") == "    -inf"
+        NegInf.format("^8") == "  -inf  "
+        NegInf.format("=8") == "-    inf"
 
-  # boolean values
-  doassert true.format("") == "true"
-  doassert false.format("") == "false"
-  doassert true.format("s") == "true"
-  doassert false.format("s") == "false"
-  doassert true.format("d") == "1"
-  doassert false.format("d") == "0"
+        NegInf.format(".<8") == "-inf...."
+        NegInf.format(".>8") == "....-inf"
+        NegInf.format(".^8") == "..-inf.."
+        NegInf.format(".=8") == "-....inf"
+        NegInf.format(".< 8") == "-inf...."
+        NegInf.format(".> 8") == "....-inf"
+        NegInf.format(".^ 8") == "..-inf.."
+        NegInf.format(".= 8") == "-....inf"
+        NegInf.format(".<+8") == "-inf...."
+        NegInf.format(".>+8") == "....-inf"
+        NegInf.format(".^+8") == "..-inf.."
+        NegInf.format(".=+8") == "-....inf"
+        NegInf.format(".<-8") == "-inf...."
+        NegInf.format("0>-8") == "0000-inf"
+        NegInf.format(".^-8") == "..-inf.."
+        NegInf.format("0=-8") == "-0000inf"
+        NegInf.format("-08") == "-0000inf"
 
-  doassert([[1,2,3], [4,5,6]].format("3a:;\n :, ") == "  1,   2,   3;\n   4,   5,   6")
-  doassert([[1,2,3], [4,5,6]].format("") == "1\t2\t3\t4\t5\t6")
-  doassert([[1.0,2.0,3.0], [4.0,5.0,6.0]].format(".1e") == "1.0e+00\t2.0e+00\t3.0e+00\t4.0e+00\t5.0e+00\t6.0e+00")
+    test "positive 0.0":
+      check:
+        0.0.format(".<8") == "0......."
+        0.0.format(".>8") == ".......0"
+        0.0.format(".^8") == "...0...."
+        0.0.format(".=8") == ".......0"
+        0.0.format(".< 8") == " 0......"
+        0.0.format(".> 8") == "...... 0"
+        0.0.format(".^ 8") == "... 0..."
+        0.0.format(".= 8") == " ......0"
+        0.0.format(".<+8") == "+0......"
+        0.0.format(".>+8") == "......+0"
+        0.0.format(".^+8") == "...+0..."
+        0.0.format(".=+8") == "+......0"
+        0.0.format(".<-8") == "0......."
+        0.0.format("0>-8") == "00000000"
+        0.0.format(".^-8") == "...0...."
+        0.0.format("0=-8") == "00000000"
+        0.0.format("-08") == "00000000"
+        zero.format("5.2e") == "0.00e+00"
 
-  doassert("number: {} with width: {:5.2f} string: {:.^9} array: {:a:, } end".fmt(42, 1.45, "hello", [1,2,3]) ==
+    test "negative 0.0":
+      check:
+        negzero.format("") == "-0"
+        negzero.format("8") == "      -0"
+        negzero.format("<8") == "-0      "
+        negzero.format(">8") == "      -0"
+        negzero.format("^8") == "   -0   "
+        negzero.format("=8") == "-      0"
+
+        negzero.format(".<8") == "-0......"
+        negzero.format(".>8") == "......-0"
+        negzero.format(".^8") == "...-0..."
+        negzero.format(".=8") == "-......0"
+        negzero.format(".< 8") == "-0......"
+        negzero.format(".> 8") == "......-0"
+        negzero.format(".^ 8") == "...-0..."
+        negzero.format(".= 8") == "-......0"
+        negzero.format(".<+8") == "-0......"
+        negzero.format(".>+8") == "......-0"
+        negzero.format(".^+8") == "...-0..."
+        negzero.format(".=+8") == "-......0"
+        negzero.format(".<-8") == "-0......"
+        negzero.format("0>-8") == "000000-0"
+        negzero.format(".^-8") == "...-0..."
+        negzero.format("0=-8") == "-0000000"
+        negzero.format("-08") == "-0000000"
+
+        negzero.format("5.2e") == "-0.00e+00"
+
+    test "more floats":
+      check:
+        123.456.format() == "123.456"
+        123.45678.format() == "123.457"
+        123.456.format("f") == "123.456000"
+        123.456.format(".2f") == "123.46"
+        123.456.format("8.2f") == "  123.46"
+        123.456.format("e") == "1.234560e+02"
+        123.456.format("E") == "1.234560E+02"
+        1.0.format("e") == "1.000000e+00"
+        123.456.format(".2e") == "1.23e+02"
+        123.456.format(".<10.2e") == "1.23e+02.."
+        123.456.format(".2g") == "1.2e+02"
+        123.456.format(".2G") == "1.2E+02"
+        123.456.format(".3g") == "123"
+        123.456.format(".10g") == "123.456"
+        1234.56.format(".10g") == "1234.56"
+        1234.56.format(",.10g") == "1,234.56"
+        123456.789.format(",.10g") == "123,456.789"
+        1234567.89.format(",.10g") == "1,234,567.89"
+        1234567.89.format(",.3f") == "1,234,567.890"
+        1234567.89.format("15,.3f") == "  1,234,567.890"
+        0.00123456.format("f") == "0.001235"
+        0.00123456.format("e") == "1.234560e-03"
+        0.00123456.format("g") == "0.00123456"
+        0.00123456.format(".4g") == "0.001235"
+        0.00123456.format(".1g") == "0.001"
+        0.000123456.format("g") == "0.000123456"
+        0.0000123456.format("g") == "1.23456e-05"
+        0.0000123456.format(".3g") == "1.23e-05"
+        0.0000123456.format("0=+10.3g") == "+01.23e-05"
+        0.0000123456.format("0= 10.3g") == " 01.23e-05"
+        (-0.0000123456).format("0=10.3") == "-01.23e-05"
+        0.3.format("%") == "30.000000%"
+        0.3.format(".2%") == "30.00%"
+
+
+  suite "Booleans":
+    test "booleans":
+      check:
+        true.format("") == "true"
+        false.format("") == "false"
+        true.format("s") == "true"
+        false.format("s") == "false"
+        true.format("d") == "1"
+        false.format("d") == "0"
+
+
+  suite "Arrays":
+    test "arrays of arrays":
+      check:
+        [[1,2,3], [4,5,6]].format("3a:;\n :, ") == "  1,   2,   3;\n   4,   5,   6"
+        [[1,2,3], [4,5,6]].format("") == "1\t2\t3\t4\t5\t6"
+        [[1.0,2.0,3.0], [4.0,5.0,6.0]].format(".1e") == "1.0e+00\t2.0e+00\t3.0e+00\t4.0e+00\t5.0e+00\t6.0e+00"
+
+
+  suite "fmt syntax":
+    setup:
+      let
+        x = 32
+        y = 8
+      var
+        z = 0
+        s = ""
+
+    test "fmt":
+      check:
+        ("number: {} with width: {:5.2f} string: {:.^9} array: {:a:, } end".fmt(42, 1.45, "hello", [1,2,3]) ==
              "number: 42 with width:  1.45 string: ..hello.. array: 1, 2, 3 end")
-  doassert("{{{}}}".fmt("hallo") == "{hallo}")
+        "{{{}}}".fmt("hallo") == "{hallo}"
 
-  doassert("[{:{}^{}x}]".fmt(66, '.', 6) == "[..42..]")
-  doassert("[{:{}{}{}}]{{{:{}{}{}}}}".fmt(5, '.', '>', 6, "abc", "-", "^", 10) == "[.....5]{---abc----}")
-  doassert("[{0:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....5]")
-  doassert("[{3:{1}{2}{3}}]:{0}".fmt(5, '.', '>', 6) == "[.....6]:5")
-  doassert("[{3:{2}{2}{3}}]:{0}{1}".fmt(5, '.', '>', 6) == "[>>>>>6]:5.")
+        "[{:{}^{}x}]".fmt(66, '.', 6) == "[..42..]"
+        "[{:{}{}{}}]{{{:{}{}{}}}}".fmt(5, '.', '>', 6, "abc", "-", "^", 10) == "[.....5]{---abc----}"
+        "[{0:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....5]"
+        "[{3:{1}{2}{3}}]:{0}".fmt(5, '.', '>', 6) == "[.....6]:5"
+        "[{3:{2}{2}{3}}]:{0}{1}".fmt(5, '.', '>', 6) == "[>>>>>6]:5."
 
-  doassert("[{0:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....5]")
+        "[{0:{1}{2}{3}}]".fmt(5, '.', '>', 6) == "[.....5]"
 
-  doassert "{0.name:.^10} {0.age}".fmt((name:"john", age:27)) == "...john... 27"
-  doassert "{0[1]:.^10} {0[0]}".fmt(["27", "john"]) == "...john... 27"
+        "{0.name:.^10} {0.age}".fmt((name:"john", age:27)) == "...john... 27"
+        "{0[1]:.^10} {0[0]}".fmt(["27", "john"]) == "...john... 27"
 
-  doassert("{} {}".fmt(125u8, 254u8) == "125 254");
+        "{} {}".fmt(125u8, 254u8) == "125 254"
 
-  var x = 0
-  doassert "{0} {0}".fmt((x.inc; x)) == "1 1"
+    test "proc inside fmt":
+      check:
+        "{0} {0}".fmt((z.inc; z)) == "1 1"
 
-  doassert($$"interpolate ${32} == ${4.2}" == "interpolate 32 == 4.2")
-  block:
-    let x = 32
-    let y = 8
-    doassert($$"${x} + ${y} == ${x + y}" == "32 + 8 == 40")
-  block:
-    let x = 32
-    let y = 8
-    doassert($$"max($x, $y) == ${max(x,y)}" == "max(32, 8) == 32")
-  doassert(interp"formatted: ${4:.^5}" == "formatted: ..4..")
-  #doassert(interp"formatted: ${{1:2,3:4}[1][0]}" == "formatted: 3")
-  #doassert(interp"formatted: ${{1:2,3:4}[1][0]:.^10}" == "formatted: ....3.....")
-  #doassert(interp"formatted: ${if true: 1 else: 2}" == "formatted: 1")
-  #doassert($$"formatted: ${if true: \"a\" else: \"b\"}" == "formatted: a")
+    test "$$":
+      check:
+        $$"interpolate ${32} == ${4.2}" == "interpolate 32 == 4.2"
+        $$"${x} + ${y} == ${x + y}" == "32 + 8 == 40"
+        $$"max($x, $y) == ${max(x,y)}" == "max(32, 8) == 32"
+        interp"formatted: ${4:.^5}" == "formatted: ..4.."
+        # (interp"formatted: ${{1:2,3:4}[1][0]}" == "formatted: 3")
+        # (interp"formatted: ${{1:2,3:4}[1][0]:.^10}" == "formatted: ....3.....")
+        # (interp"formatted: ${if true: 1 else: 2}" == "formatted: 1")
+        # ($$"formatted: ${if true: \"a\" else: \"b\"}" == "formatted: a")
 
-  var s: string = ""
-  s.addfmt("a:{}", 42)
-  doassert(s == "a:42")
+    test "addfmt":
+      check:
+        (s.addfmt("a:{}", 42); s) == "a:42"
