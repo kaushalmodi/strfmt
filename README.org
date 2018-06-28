@@ -1,6 +1,6 @@
 * Fork
 This repo is a *fork* of the original ~strfmt~ repo by *lyro* (Frank
-Fisher) at https://bitbucket.org/lyro/strfmt/.
+Fischer) at https://bitbucket.org/lyro/strfmt/.
 
 I do not claim any authorship of this awesome project. I forked it
 because I am more comfortable with /git/ than /mercurial/ (which is
