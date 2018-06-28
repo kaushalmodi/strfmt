@@ -1,9 +1,13 @@
-[Package]
-name = "strfmt"
-version = "0.9.0"
+# Package
+
+version = "0.9.1"
 author = "Frank Fischer"
 description = "A string formatting library inspired by Python's `format`"
 license = "MIT"
 
-[Deps]
-Requires: "nimrod >= 0.11.2"
+# Dependencies
+
+requires "nim >= 0.18.1"
+
+task test, "Runs the tests in strfmt.nim":
+  exec "nim c -r strfmt.nim"
