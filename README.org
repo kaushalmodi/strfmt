@@ -1,20 +1,35 @@
 * Fork
-This repo is just a *fork* of the original ~strfmt~ repo by *lyro*
-(Frank Fisher) at https://bitbucket.org/lyro/strfmt/.
+This repo is a *fork* of the original ~strfmt~ repo by *lyro* (Frank
+Fisher) at https://bitbucket.org/lyro/strfmt/.
 
 I do not claim any authorship of this awesome project. I forked it
 because I am more comfortable with /git/ than /mercurial/ (which is
-used for the original repo).
+used for the original repo), and I wanted to make this project work
+once again on Nim /devel/ (2018-06-28).
 
 -----
 
 * Introduction
 =strfmt= is a small string formatting library for the [[http://nim-lang.org][Nim]] programming
 language similar to Python's [[https://docs.python.org/3.4/library/functions.html#format][=format=]].
-
+* Installation
+** Original
+To install the original ~strfmt~, do:
+#+begin_example
+nimble install strfmt
+#+end_example
+** This fork
+To install this forked version, do:
+#+begin_example
+git clone https://github.com/kaushalmodi/strfmt
+cd strfmt
+nimble install
+#+end_example
+/For some reason, ~nimble install
+https://github.com/kaushalmodi/strfmt~ still installs the original
+version./
 * Documentation
 The module is described in the [[http://lyro.bitbucket.io/strfmt][reference documentation]].
-
 * Development
 To run the tests, clone this repo, cd to the repo directory and run:
 #+begin_example
