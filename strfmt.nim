@@ -690,9 +690,9 @@ proc writefill(o: var Writer; fmt: Format; n: int; signum: int = 0) =
     elif fmt.sign == fsSpace: write(o, ' ')
 
   if fmt.fill == nil:
-    for i in 1..n: write(o, ' ')
+    for i in 1 .. n: write(o, ' ')
   else:
-    for i in 1..n:
+    for i in 1 .. n:
       for c in fmt.fill:
         write(o, c)
 
@@ -708,13 +708,13 @@ proc writeformat*(o: var Writer; s: string; fmt: Format) =
     raise newException(FormatError, "String variable must have 's' format type")
 
   # compute alignment
-  let len = if fmt.precision < 0: runelen(s) else: min(runelen(s), fmt.precision)
-  var alg = getalign(fmt, faLeft, len)
+  let l = if fmt.precision < 0: runelen(s) else: min(runelen(s), fmt.precision)
+  var alg = getalign(fmt, faLeft, l)
   writefill(o, fmt, alg.left)
   var pos = 0
-  for i in 0..len-1:
+  for i in 0 ..< l:
     let rlen = runeLenAt(s, pos)
-    for j in pos..pos+rlen-1: write(o, s[j])
+    for j in pos ..< (pos+rlen): write(o, s[j])
     pos += rlen
   writefill(o, fmt, alg.right)
 
@@ -774,7 +774,7 @@ proc writeformat*(o: var Writer; i: SomeInteger; fmt: Format) =
   if fmt.sign != fsMinus or i < 0: len.inc
 
   var x: type(i) = abs(i)
-  var istr: array[0..31, uint8]
+  var istr: array[0 .. 31, uint8]
   var ilen = 0
   const COMMA = 42.uint8 # a marker for a comma
   while x > 0.SomeInteger:
@@ -850,17 +850,17 @@ proc writeformat*(o: var Writer; x: SomeFloat; fmt: Format) =
   var prec = if fmt.precision < 0: DefaultPrec else: fmt.precision
   var y = abs(x)
   var exp = 0
-  var numstr, frstr: array[0..31, char]
+  var numstr, frstr: array[0 .. 31, char]
   var numlen, frbeg, frlen = 0
 
   if fmt.typ == ftPercent: y *= 100
 
   case classify(x):
   of fcNan:
-    numstr[0..2] = ['n', 'a', 'n']
+    numstr[0 .. 2] = ['n', 'a', 'n']
     numlen = 3
   of fcInf, fcNegInf:
-    numstr[0..2] = ['f', 'n', 'i']
+    numstr[0 .. 2] = ['f', 'n', 'i']
     numlen = 3
   else: # a usual fractional number
     if not (fmt.typ in {ftFix, ftPercent}): # not fixed point
@@ -889,7 +889,7 @@ proc writeformat*(o: var Writer; x: SomeFloat; fmt: Format) =
 
     # split into integer and fractional part
     var mult = 1'i64
-    for i in 1..prec: mult *= 10
+    for i in 1 .. prec: mult *= 10
     var num = y.int64
     var fr = ((y - num.SomeFloat) * mult.SomeFloat).int64
     # build integer part string
@@ -987,7 +987,7 @@ proc writeformat*(o: var Writer; ary: openarray[any]; fmt: Format) =
       nxtfmt.arysep = ""
       sep = fmt.arysep.substr(1)
   writeformat(o, ary[0], nxtfmt)
-  for i in 1..ary.len-1:
+  for i in 1 ..< ary.len:
     for c in sep: write(o, c)
     writeformat(o, ary[i], nxtfmt)
 
@@ -1238,7 +1238,7 @@ proc addfmtfmt(fmtstr: string; args: NimNode; retvar: NimNode): NimNode {.compil
   var argexprs = newseq[tuple[arg:NimNode; cnt:int]](args.len)
   result = newNimNode(nnkStmtListExpr)
   # generate let bindings for arguments
-  for i in 0..args.len-1:
+  for i in 0 ..< args.len:
     let argsym = gensym(nskLet, "arg" & $i)
     result.add(newLetStmt(argsym, args[i]))
     argexprs[i].arg = argsym
