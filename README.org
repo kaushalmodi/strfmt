@@ -21,13 +21,8 @@ nimble install strfmt
 ** This fork
 To install this forked version, do:
 #+begin_example
-git clone https://github.com/kaushalmodi/strfmt
-cd strfmt
-nimble install
+nimble install https://github.com/kaushalmodi/strfmt
 #+end_example
-/For some reason, ~nimble install
-https://github.com/kaushalmodi/strfmt~ still installs the original
-version./
 * Documentation
 The module is described in the [[http://lyro.bitbucket.io/strfmt][reference documentation]].
 * Development
