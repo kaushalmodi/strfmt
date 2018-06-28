@@ -545,7 +545,7 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
   else:
     let rlen = fmt.runeLenAt(pos)
     if fmt[pos + rlen] in { '<', '>', '^', '=' }:
-      result.fill = fmt[pos .. <pos+rlen]
+      result.fill = fmt[pos ..< (pos+rlen)]
       case fmt[pos + rlen]
       of '<': result.align = faLeft
       of '>': result.align = faRight
@@ -635,7 +635,7 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
 
   # array separator
   if pos < n and fmt[pos] == 'a':
-    result.arysep = fmt[pos+1 .. <fmt.len]
+    result.arysep = fmt[pos+1 .. fmt.high]
     pos = fmt.len
   else:
     result.arysep = nil
@@ -831,7 +831,7 @@ proc writeformat*(o: var Writer; p: pointer; fmt: Format) =
     f.baseprefix = true
   writeformat(o, add, cast[uint](p), f)
 
-proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
+proc writeformat*(o: var Writer; x: SomeFloat; fmt: Format) =
   ## Write real number `x` according to format `fmt` using output
   ## object `o` and output function `add`.
   var fmt = fmt
@@ -879,8 +879,8 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
       else:
         len += 4 # exponent
       # shift y so that 1 <= abs(y) < 2
-      if exp > 0: y /= pow(10.SomeReal, abs(exp).SomeReal)
-      elif exp < 0: y *= pow(10.SomeReal, abs(exp).SomeReal)
+      if exp > 0: y /= pow(10.SomeFloat, abs(exp).SomeFloat)
+      elif exp < 0: y *= pow(10.SomeFloat, abs(exp).SomeFloat)
     elif fmt.typ == ftPercent:
       len += 1 # percent sign
 
@@ -891,7 +891,7 @@ proc writeformat*(o: var Writer; x: SomeReal; fmt: Format) =
     var mult = 1'i64
     for i in 1..prec: mult *= 10
     var num = y.int64
-    var fr = ((y - num.SomeReal) * mult.SomeReal).int64
+    var fr = ((y - num.SomeFloat) * mult.SomeFloat).int64
     # build integer part string
     while num != 0:
       if fmt.comma and numlen mod 4 == 3:
@@ -1132,7 +1132,7 @@ proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
 
       # format specifier
       if pos < n and fmtpart.fmt[pos] == ':':
-        fmtpart.fmt = fmtpart.fmt[pos+1 .. <n]
+        fmtpart.fmt = fmtpart.fmt[(pos+1) ..< n]
         pos = n
       else:
         fmtpart.fmt = ""
