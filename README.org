@@ -1,0 +1,16 @@
+* Fork
+This repo is just a *fork* of the original ~strfmt~ repo by *lyro*
+(Frank Fisher) at https://bitbucket.org/lyro/strfmt/.
+
+I do not claim any authorship of this awesome project. I forked it
+because I am more comfortable with /git/ than /mercurial/ (which is
+used for the original repo).
+
+-----
+
+* Introduction
+=strfmt= is a small string formatting library for the [[http://nim-lang.org][Nim]] programming
+language similar to Python's [[https://docs.python.org/3.4/library/functions.html#format][=format=]].
+
+* Documentation
+The module is described in the [[http://lyro.bitbucket.io/strfmt][reference documentation]].
