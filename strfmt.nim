@@ -534,8 +534,9 @@ const
 proc write*(s: var string; c: char) =
   s.add(c)
 
+# proc parse*(fmt: string): Format =
 proc parse*(fmt: string): Format {.nosideeffect.} =
-  # Converts the format string `fmt` into a `Format` structure.
+  ## Converts the format string `fmt` into a `Format` structure.
   let n = fmt.len
   var pos = 0
 
@@ -543,7 +544,8 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
   if pos == n:
     result.align = faDefault
   else:
-    let rlen = fmt.runeLenAt(pos)
+    let rlen = if n == 1: 0 else: fmt.runeLenAt(pos) # https://github.com/kaushalmodi/strfmt/issues/1
+    # echo "fmt = ", fmt, ", n = ", n, ", pos = ", pos, ", rlen = ", rlen
     if fmt[pos + rlen] in { '<', '>', '^', '=' }:
       result.fill = fmt[pos ..< (pos+rlen)]
       case fmt[pos + rlen]
