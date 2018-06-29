@@ -1,11 +1,11 @@
 The most important functions and macros provided are:
 
-1. the `format` functions to render a single value as a string,
-2. the `fmt` macro to construct a string containing several
+1. the *format* functions to render a single value as a string,
+2. the *fmt* macro to construct a string containing several
    formatted values
-3. the `writefmt` and `printfmt` family of macros to write a
-   formatted string to a file and `stdout`, respectively
-4. the `interp` and `$$` string **interpolation** macros to
+3. the *writefmt* and *printfmt* family of macros to write a
+   formatted string to a file and *stdout*, respectively
+4. the *interp* and *$$* string **interpolation** macros to
    render expressions embedded in the string itself
 
 These functions are described in the following sections.
@@ -15,9 +15,9 @@ This package is hosted on `bitbucket
 have some feature requests, please use the `issue tracker
 <https://bitbucket.org/lyro/strfmt/issues?status=new&status=open>`_.
 
-Formatting a single value: `format`
+Formatting a single value: *format*
 -----------------------------------
-The `format` function transforms a single value to a string
+The *format* function transforms a single value to a string
 according to a given *format string*, e.g.
 
 .. code-block:: nim
@@ -41,12 +41,12 @@ The general form of a format specifier is
 
 The meaning of the various fields is as follows.
 
-`fill`
+**fill**
   this character (or rune) is used to for the additional characters
-  to be written until the formatted string is at least `width`
+  to be written until the formatted string is at least *width*
   characters long. The fill character defaults to SPACE.
 
-`align`
+**align**
   ====== =========
   Option Meaning
   ------ ---------
@@ -61,7 +61,7 @@ The meaning of the various fields is as follows.
          numbers (default for numbers).
   ====== =========
 
-`sign`
+**sign**
   The sign character is only used for numeric values.
 
   =======  =========
@@ -69,24 +69,24 @@ The meaning of the various fields is as follows.
   -------  ---------
   ``+``    All numbers (including positive ones) are preceded by a sign.
   ``-``    Only negative numbers are preceded by a sign.
-  `SPACE`  Negative numbers are preceded by a sign, positive numbers are preceded by a space.
+  *SPACE*  Negative numbers are preceded by a sign, positive numbers are preceded by a space.
   =======  =========
 
-`#`
+**#**
   If this character is present then the integer values in the
-  formats ``b``, ``o``, ``x`` and ``X`` are preceded by `0b`, `0o`
-  or `0x`, respectively. In all other formats this character is
+  formats ``b``, ``o``, ``x`` and ``X`` are preceded by *0b*, *0o*
+  or *0x*, respectively. In all other formats this character is
   ignored.
 
-`width`
+**width**
   The minimal width of the resulting string. The result string is
-  padded with extra characters (according the `align` field) until
-  at least `width` characters have been written.
+  padded with extra characters (according the *align* field) until
+  at least *width* characters have been written.
 
-`,`
+**,**
   Add , as a thousands separator
 
-`precision`
+**precision**
   The meaning of the precision field depends on the formatting
   type.
 
@@ -102,9 +102,9 @@ The meaning of the various fields is as follows.
   Note that in all cases the decimal point is printed if and only
   if there is at least one digit following the point.
 
-  The `precision` field is ignored in all other cases.
+  The *precision* field is ignored in all other cases.
 
-`type`
+**type**
   The formatting type. The valid types depend on the type of the
   value to be printed. For strings the following types are valid.
 
@@ -142,12 +142,12 @@ The meaning of the various fields is as follows.
         format or in scientific format depending on the precision
         and the exponent in scientific format.
 
-        The exact rule is as follows. Suppose `exp` is the exponent
-        in scientific format and `p` the desired precision. If `-4
-        <= exp <= p-1` then the number is formatted in fixed point
-        format ``f`` with precision `p-1-exp`. Otherwise the number
+        The exact rule is as follows. Suppose *exp* is the exponent
+        in scientific format and *p* the desired precision. If *-4
+        <= exp <= p-1* then the number is formatted in fixed point
+        format ``f`` with precision *p-1-exp*. Otherwise the number
         if formatted in scientific format ``e`` with precision
-        `p-1`. Trailing zeros are removed in all cases and the
+        *p-1*. Trailing zeros are removed in all cases and the
         decimal point is removed as well if there are no remaining
         digits following it.
   ``G`` The same as ``g`` but works like ``E`` if scientific format
@@ -156,14 +156,14 @@ The meaning of the various fields is as follows.
         format ``f`` and followed by a percent sign.
   ===== ===========================================================
 
-`array_sep`
+**array_sep**
   If an array is formatted, the format specifications above apply
   to each element of the array. The elements are printed in
   succession separated by a separator string. If the array is
   nested then this applies recursively.
 
-  The `array_sep` field specifies the separator string for all
-  levels of a nested array. The first character after the `a` is
+  The *array_sep* field specifies the separator string for all
+  levels of a nested array. The first character after the *a* is
   the level separator and works as separator between the string for
   successive levels. It is never used in the resulting string. All
   characters between two level separators are the separator between
@@ -183,36 +183,36 @@ following example should make this clear:
 .. code-block:: nim
   [[2, 3, 4], [5, 6, 7]].format("02da|; |, ")
 
-This code returns the string `"02, 03, 04; 05, 06, 07"`. The
+This code returns the string *"02, 03, 04; 05, 06, 07"*. The
 special character separating the strings of different levels is the
 first character after the ``a``, i.e. the pipe character ``|`` in
 this example. Following the first pipe character is the separator
-string for the outer most level, `"; "`. This means that after
-printing the first element of the outermost array the string `"; "`
+string for the outer most level, *"; "*. This means that after
+printing the first element of the outermost array the string *"; "*
 is printed. After the second pipe character comes the separator
-string for the second level, in this example `", "`. Between each
-two elements of the second level the separator string `", "` is
+string for the second level, in this example *", "*. Between each
+two elements of the second level the separator string *", "* is
 printed. Because the elements of the second level array are
 integers, the format string "02d" applies to all of them. Thus,
 each number is printed with a leading 0. After the 4 has been
 printed the complete first element of the outer array (namely in
-array `[2, 3, 4]`) has been printed, so the separator string of the
+array *[2, 3, 4]*) has been printed, so the separator string of the
 outer level follows, in this case a semicolon and a space. Finally
-the second array `[6, 7, 8]` is printed with the separator ", "
+the second array *[6, 7, 8]* is printed with the separator ", "
 between each two elements.
 
-A string containing formatted values: `fmt`
+A string containing formatted values: *fmt*
 -------------------------------------------
-The `fmt` macro allows to interpolate a string with several
+The *fmt* macro allows to interpolate a string with several
 formatted values. This macro takes a format string as its first
 argument and the values to be formatted in the remaining arguments.
 The result is a formatted string expression. Note that the format
 string *must* be a literal string.
 
 A format string contains a replacement field within
-curly braces `{...}`. Anything that is not contained in braces is
+curly braces *{...}*. Anything that is not contained in braces is
 considered literal text. Literal braces can be escaped by doubling
-the brace character `{{` and `}}`, respectively.
+the brace character *{{* and *}}*, respectively.
 
 A format string has the following form:
 ::
@@ -220,8 +220,8 @@ A format string has the following form:
 
 The single fields have the following meaning.
 
-`argument`
-  A number denoting the argument passed to `fmt`. The first
+**argument**
+  A number denoting the argument passed to *fmt*. The first
   argument (after the format string) has number 0. This number can
   be used to refer to a specific argument. The same argument can be
   referred by multiple replacement fields:
@@ -229,32 +229,32 @@ The single fields have the following meaning.
   .. code-block:: nim
     "{0} {1} {0}".fmt(1, 0)
 
-  gives the string `"1 0 1"`.
+  gives the string *"1 0 1"*.
 
   If no argument number is given, the replacement fields refer to
-  the arguments passed to `fmt` in order. Note that this is an
+  the arguments passed to *fmt* in order. Note that this is an
   always-or-never option: either *all* replacement fields use
   explicit argument numbers or none.
 
-`field`
+**field**
   If the argument is a structured type (e.g. a tuple), this
   specifies which field of the argument should be formatted, e.g.
 
   .. code-block:: nim
     "{0.x} {0.y}".fmt((x: 1, y:"foo"))
 
-  gives `"1 foo"`.
+  gives *"1 foo"*.
 
-`index`
+**index**
   If the argument is a sequence type the index refers to the
   elements of the sequence to be printed:
 
   .. code-block:: nim
     "<{[1]}>".fmt([23, 42, 81])
 
-  gives `"<42>"`.
+  gives *"<42>"*.
 
-`format_spec`
+**format_spec**
   This is the format specification for the argument as described in
   `Formatting a single value: format`_.
 
@@ -272,16 +272,16 @@ fields, e.g.
 
     "{:{}{}{}x}".fmt(66, ".", "^", 6)
 
-Results in the string `"..42.."`.
+Results in the string *"..42.."*.
 
-`fmt` allows exactly one nested level. Note that the resulting code
+*fmt* allows exactly one nested level. Note that the resulting code
 is slightly more inefficient than without nesting (but only for
 those arguments that actually use nested fields), because after
 construction of the outer format specification, the format string
 must be parsed again at runtime. Furthermore, the constructed
 format string requires an additional temporary string.
 
-The following example demonstrates how `fmt` together with array
+The following example demonstrates how *fmt* together with array
 separators can be used to format a nested in array in a Matlab-like
 style:
 
@@ -294,11 +294,11 @@ results in
     A=[     1,      2,      3;
             4,      5,      6]
 
-How `fmt` works
+How *fmt* works
 ---------------
-The `fmt` macros transforms the format string and its arguments
+The *fmt* macros transforms the format string and its arguments
 into a sequence of commands that build the resulting string. The
-format specifications are parsed and transformed into a `Format`
+format specifications are parsed and transformed into a *Format*
 structure at compile time so that no overhead remains at runtime.
 For instance, the following expression
 
@@ -319,10 +319,10 @@ is roughly transformed to
      ret)
 
 (Note that this is a statement-list-expression). The functions
-`addformat` are defined within `strfmt` and add formatted output to
-the string `ret`.
+*addformat* are defined within *strfmt* and add formatted output to
+the string *ret*.
 
-String interpolation `interp`
+String interpolation *interp*
 -----------------------------
 
 ------
@@ -331,8 +331,8 @@ String interpolation `interp`
 
 ------
 
-The `interp` macro interpolates a string with embedded
-expressions. If the string to be interpolated contains a `$`, then
+The *interp* macro interpolates a string with embedded
+expressions. If the string to be interpolated contains a *$*, then
 the following characters are interpreted as expressions.
 
   .. code-block:: nim
@@ -341,7 +341,7 @@ the following characters are interpreted as expressions.
     let y = 1.0/3.0
     echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
 
-The macro `interp` supports the following interpolations
+The macro *interp* supports the following interpolations
 expressions:
 
   ====================== ===========================================
@@ -359,17 +359,17 @@ expressions:
                          its result is substituted into the string
                          according to the format string
                          ``<format>``. The format string has the
-                         same structure as for the `format`
+                         same structure as for the *format*
                          function.
   ``$$``                 A literal ``$``
   ====================== ===========================================
 
 
-How `interp` works
+How *interp* works
 ------------------
-The macro `interp` is quite simple. A string with embedded
+The macro *interp* is quite simple. A string with embedded
 expressions is simply transformed to an equivalent expression using
-the `fmt` macro:
+the *fmt* macro:
 
   .. code-block:: nim
 
@@ -381,9 +381,9 @@ is transformed to
 
     echo fmt("Equation: {} + {:.2f} == {}", x, y, x.float + y)
 
-Writing formatted output to a file: `writefmt`
+Writing formatted output to a file: *writefmt*
 ----------------------------------------------
-The `writefmt` family of macros are convenience helpers to write
+The *writefmt* family of macros are convenience helpers to write
 formatted output to a file. A call
 
 .. code-block:: nim
@@ -395,13 +395,13 @@ is equivalent to
   write(f, fmtstr.fmt(arg1, arg2, ...))
 
 However, the former avoids the creation of temporary intermediate
-strings (the variable `ret` in the example above) but writes
-directly to the output file. The `printfmt` family of functions
-does the same but writes to `stdout`.
+strings (the variable *ret* in the example above) but writes
+directly to the output file. The *printfmt* family of functions
+does the same but writes to *stdout*.
 
 Adding new formatting functions
 -------------------------------
-In order to add a new formatting function for a type `T` one has to
+In order to add a new formatting function for a type *T* one has to
 define a new function
 
 .. code-block:: nim
