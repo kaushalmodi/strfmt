@@ -23,7 +23,7 @@
 ## :Version: 0.9.1
 ##
 ## Introduction
-## ------------
+## ============
 ##
 ## Basic helpers for formatting values as strings in a configurable
 ## way. It is inspired by and similar to `Python's format function
