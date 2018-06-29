@@ -10,10 +10,8 @@ The most important functions and macros provided are:
 
 These functions are described in the following sections.
 
-This package is hosted on `bitbucket
-<https://bitbucket.org/lyro/strfmt>`_. If you encounter any bugs or
-have some feature requests, please use the `issue tracker
-<https://bitbucket.org/lyro/strfmt/issues?status=new&status=open>`_.
+This package is hosted `here
+<https://www.github.com/kaushalmodi/strfmt>`_.
 
 Formatting a single value: *format*
 -----------------------------------

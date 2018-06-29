@@ -29,7 +29,7 @@
 ## way. It is inspired by and similar to `Python's format function
 ## <https://docs.python.org/3.4/library/functions.html#format>`_.
 ##
-## .. include:: ./doc/strfmt.rst
+## .. include:: ./docs/strfmt.rst
 ##
 
 import macros
