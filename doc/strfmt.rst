@@ -21,6 +21,7 @@ The *format* function transforms a single value to a string
 according to a given *format string*, e.g.
 
 .. code-block:: nim
+
   42.23.format("06.1f")
 
 The syntax of the format specification string is similar to
@@ -181,6 +182,7 @@ the first character after the ``a`` in the format string. The
 following example should make this clear:
 
 .. code-block:: nim
+
   [[2, 3, 4], [5, 6, 7]].format("02da|; |, ")
 
 This code returns the string *"02, 03, 04; 05, 06, 07"*. The
@@ -227,6 +229,7 @@ The single fields have the following meaning.
   referred by multiple replacement fields:
 
   .. code-block:: nim
+
     "{0} {1} {0}".fmt(1, 0)
 
   gives the string *"1 0 1"*.
@@ -241,6 +244,7 @@ The single fields have the following meaning.
   specifies which field of the argument should be formatted, e.g.
 
   .. code-block:: nim
+
     "{0.x} {0.y}".fmt((x: 1, y:"foo"))
 
   gives *"1 foo"*.
@@ -250,6 +254,7 @@ The single fields have the following meaning.
   elements of the sequence to be printed:
 
   .. code-block:: nim
+
     "<{[1]}>".fmt([23, 42, 81])
 
   gives *"<42>"*.
@@ -286,6 +291,7 @@ separators can be used to format a nested in array in a Matlab-like
 style:
 
   .. code-block:: nim
+
     "A=[{:6ga|;\n   |, }]".fmt([[1.0,2.0,3.0], [4.0,5.0,6.0]])
 
 results in
@@ -303,11 +309,13 @@ structure at compile time so that no overhead remains at runtime.
 For instance, the following expression
 
   .. code-block:: nim
+
     "This {} the number {:_^3} example".fmt("is", 1)
 
 is roughly transformed to
 
   .. code-block:: nim
+
     (let arg0 = "is";
      let arg1 = 1;
      var ret = newString(0);
@@ -387,11 +395,13 @@ The *writefmt* family of macros are convenience helpers to write
 formatted output to a file. A call
 
 .. code-block:: nim
+
   writefmt(f, fmtstr, arg1, arg2, ...)
 
 is equivalent to
 
 .. code-block:: nim
+
   write(f, fmtstr.fmt(arg1, arg2, ...))
 
 However, the former avoids the creation of temporary intermediate
@@ -405,6 +415,7 @@ In order to add a new formatting function for a type *T* one has to
 define a new function
 
 .. code-block:: nim
+
   proc writeformat(o: var Writer; x: T; fmt: Format)
 
 The following example defines a formatting function for
