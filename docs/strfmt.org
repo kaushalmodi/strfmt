@@ -106,6 +106,7 @@ The meaning of the various fields is as follows.
   ``g``, ``G``                  The number of significant digits written (i.e. the
                                 number of overall digits).
   ============================= ==========
+
   #+end_export
 
   Note that in all cases the decimal point is printed if and only if
@@ -122,6 +123,7 @@ The meaning of the various fields is as follows.
   ----- -------------------------------------------------
   ``s`` A string. This is the default format for strings.
   ===== =================================================
+
   #+end_export
 
   The following types are valid for integers.
@@ -137,6 +139,7 @@ The meaning of the various fields is as follows.
   ``X`` A hexadecimal integer (base 16), all letters are upper case.
   ``n`` The same as ``d``.
   ===== ===========================================================
+
   #+end_export
 
   The following types are valid for real numbers.
@@ -383,6 +386,7 @@ String                 Meaning
                        function.
 ``$$``                 A literal ``$``
 ====================== ===========================================
+
 #+end_export
 
 * How /interp/ works
