@@ -9,24 +9,35 @@ license = "MIT"
 
 requires "nim >= 0.18.1"
 
+import ospaths # for `/`
+let
+  pkgName = "strfmt"
+  orgFile = "docs" / (pkgName & ".org")
+  rstFile = "docs" / (pkgName & ".rst")
+  rstFileAuto = "docs" / (pkgName & "_autogen.rst")
+  rstFileOrig = "docs" / (pkgName & "_orig.rst")
+  htmlFileNimDoc = pkgName & ".html"
+  htmlFileIndex = "docs" / "index.html"
+
 # Cannot use "doc" as a task name as it's one of the inbuilt switches
 # for nimble.
 task docs, "Generate HTML docs using the Org file":
-  exec "pandoc ./docs/strfmt.org -o ./docs/strfmt.rst"
-  exec "sed -i 's/.. code:: example/::/' ./docs/strfmt.rst" # Org example blocks to RST :: blocks
-  exec "sed -i 's/^#\\./1./' ./docs/strfmt.rst" # RST ordered lists: #. -> 1.
-  exec "nim doc strfmt.nim"
-  mvFile "./docs/strfmt.rst", "./docs/strfmt_autogen.rst"
-  mvFile "strfmt.html", "./docs/index.html"
+  exec "pandoc " & orgFile & " -o " & rstFile
+  exec "sed -i 's/.. code:: example/::/' " & rstFile # Org example blocks to RST :: blocks
+  exec "sed -i 's/^#\\./1./' " & rstFile # RST ordered lists: #. -> 1.
+  exec "nim doc " & pkgName
+  mvFile rstFile, rstFileAuto
+  mvFile htmlFileNimDoc, htmlFileIndex
 
 task docsrst, "Generate HTML docs using the original rst file (not maintained)":
-  cpFile "./docs/strfmt_orig.rst", "./docs/strfmt.rst"
-  exec "nim doc strfmt.nim"
-  mvFile "strfmt.html", "./docs/index.html"
+  cpFile rstFileOrig, rstFile
+  exec "nim doc " & pkgName
+  rmFile rstFile
+  mvFile htmlFileNimDoc, htmlFileIndex
 
-task test, "Runs the tests in strfmt.nim":
-  rmDir "./nimcache/"
-  exec "nim c -r strfmt.nim"
+task test, "Runs the tests in " & pkgName & ".nim":
+  rmDir "nimcache"
+  exec "nim c -r " & pkgName
 
 
 # https://nim-lang.org/docs/nimscript.html
