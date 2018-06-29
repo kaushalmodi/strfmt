@@ -49,6 +49,8 @@ The meaning of the various fields is as follows.
   characters long. The fill character defaults to SPACE.
 
 **align**
+  Special character to specify alignment.
+
   ====== =========
   Option Meaning
   ------ ---------
