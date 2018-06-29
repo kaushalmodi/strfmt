@@ -15,4 +15,5 @@ task docs, "Generate HTML docs":
   exec "nim doc strfmt.nim"
 
 task test, "Runs the tests in strfmt.nim":
+  exec "rm -rf ./nimcache"
   exec "nim c -r strfmt.nim"
