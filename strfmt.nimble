@@ -16,14 +16,17 @@ task docs, "Generate HTML docs using the Org file":
   exec "sed -i 's/.. code:: example/::/' ./docs/strfmt.rst" # Org example blocks to RST :: blocks
   exec "sed -i 's/^#\\./1./' ./docs/strfmt.rst" # RST ordered lists: #. -> 1.
   exec "nim doc strfmt.nim"
-  exec "mv ./docs/strfmt.rst ./docs/strfmt_autogen.rst"
-  exec "mv strfmt.html ./docs/index.html"
+  mvFile "./docs/strfmt.rst", "./docs/strfmt_autogen.rst"
+  mvFile "strfmt.html", "./docs/index.html"
 
 task docsrst, "Generate HTML docs using the original rst file (not maintained)":
-  exec "cp -f ./docs/strfmt_orig.rst ./docs/strfmt.rst"
+  cpFile "./docs/strfmt_orig.rst", "./docs/strfmt.rst"
   exec "nim doc strfmt.nim"
-  exec "mv strfmt.html ./docs/index.html"
+  mvFile "strfmt.html", "./docs/index.html"
 
 task test, "Runs the tests in strfmt.nim":
-  exec "rm -rf ./nimcache"
+  rmDir "./nimcache/"
   exec "nim c -r strfmt.nim"
+
+
+# https://nim-lang.org/docs/nimscript.html
