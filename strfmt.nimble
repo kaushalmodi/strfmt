@@ -15,6 +15,7 @@ task docs, "Generate HTML docs using the Org file":
   exec "pandoc ./docs/strfmt.org -o ./docs/strfmt.rst"
   exec "sed -i 's/.. code:: example/::/' ./docs/strfmt.rst" # Org example blocks to RST :: blocks
   exec "sed -i 's/^#\\./1./' ./docs/strfmt.rst" # RST ordered lists: #. -> 1.
+  exec "sed -i -r 's/\\\\ :sub:`(.+)`/_\\1/' ./docs/strfmt.rst" # Fix the underscores
   exec "nim doc strfmt.nim"
   exec "mv ./docs/strfmt.rst ./docs/strfmt_autogen.rst"
   exec "mv strfmt.html ./docs/index.html"

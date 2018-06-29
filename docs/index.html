@@ -1470,9 +1470,9 @@ array_sep   ::= &quot;&quot; | (&lt;level separating character&gt; string )+</pr
 <tr><td><tt class="docutils literal"><span class="pre">G</span></tt></td><td>The same as <tt class="docutils literal"><span class="pre">g</span></tt> but works like <tt class="docutils literal"><span class="pre">E</span></tt> if scientific format is used.</td></tr>
 <tr><td><tt class="docutils literal"><span class="pre">%</span></tt></td><td>The number if multiplied by 100, formatted in fixed point format <tt class="docutils literal"><span class="pre">f</span></tt> and followed by a percent sign.</td></tr>
 </table></dd>
-<dt><strong>array:sub:`sep`</strong></dt>
+<dt><strong>array_sep</strong></dt>
 <dd><p>If an array is formatted, the format specifications above apply to each element of the array. The elements are printed in succession separated by a separator string. If the array is nested then this applies recursively.</p>
-<p>The <em>array:sub:`sep`</em> field specifies the separator string for all levels of a nested array. The first character after the <em>a</em> is the level separator and works as separator between the string for successive levels. It is never used in the resulting string. All characters between two level separators are the separator between two elements of the respective array level. See <a class="reference external" href="#array-formatting">Array formatting</a> below.</p>
+<p>The <em>array_sep</em> field specifies the separator string for all levels of a nested array. The first character after the <em>a</em> is the level separator and works as separator between the string for successive levels. It is never used in the resulting string. All characters between two level separators are the separator between two elements of the respective array level. See <a class="reference external" href="#array-formatting">Array formatting</a> below.</p>
 </dd>
 </dl>
 
@@ -1495,7 +1495,7 @@ replacement_spec ::= &quot;{&quot; [&lt;argument&gt;] [&quot;.&quot; &lt;field&g
 <dt><strong>index</strong></dt>
 <dd>If the argument is a sequence type the index refers to the elements of the sequence to be printed:<pre class="listing"><span class="StringLit">&quot;&lt;{[1]}&gt;&quot;</span><span class="Operator">.</span><span class="Identifier">fmt</span><span class="Punctuation">(</span><span class="Punctuation">[</span><span class="DecNumber">23</span><span class="Punctuation">,</span> <span class="DecNumber">42</span><span class="Punctuation">,</span> <span class="DecNumber">81</span><span class="Punctuation">]</span><span class="Punctuation">)</span></pre><p>gives <em>&quot;&lt;42&gt;&quot;</em>.</p>
 </dd>
-<dt><strong>format:sub:`spec`</strong></dt>
+<dt><strong>format_spec</strong></dt>
 <dd>This is the format specification for the argument as described in <a class="reference external" href="#formatting-a-single-value-format">Formatting a single value: format</a>.</dd>
 </dl>
 
@@ -1828,7 +1828,7 @@ Interpolate <cite>fmtstr</cite> with expressions.
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-06-29 15:05:10 UTC</small>
+        <small>Made with Nim. Generated: 2018-06-29 15:47:34 UTC</small>
       </div>
     </div>
   </div>

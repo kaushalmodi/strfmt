@@ -153,13 +153,13 @@ The meaning of the various fields is as follows.
           format ``f`` and followed by a percent sign.
     ===== ===========================================================
 
-**array\ :sub:`sep`**
+**array_sep**
     If an array is formatted, the format specifications above apply to
     each element of the array. The elements are printed in succession
     separated by a separator string. If the array is nested then this
     applies recursively.
 
-    The *array\ :sub:`sep`* field specifies the separator string for all
+    The *array_sep* field specifies the separator string for all
     levels of a nested array. The first character after the *a* is the
     level separator and works as separator between the string for
     successive levels. It is never used in the resulting string. All
@@ -258,7 +258,7 @@ The single fields have the following meaning.
 
     gives *"<42>"*.
 
-**format\ :sub:`spec`**
+**format_spec**
     This is the format specification for the argument as described in
     `Formatting a single value:
     format <#formatting-a-single-value-format>`__.
