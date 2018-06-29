@@ -31,6 +31,7 @@ The syntax of the format specification string is similar to
 The general form of a format specifier is
 
 ::
+
   format_spec ::= [[fill]align][sign][#][0][width][,][.precision][type][a[array_sep]]
   fill        ::= rune
   align       ::= "<" | ">" | "^" | "="
@@ -218,6 +219,7 @@ the brace character *{{* and *}}*, respectively.
 
 A format string has the following form:
 ::
+
   replacement_spec ::= "{" [<argument>] ["." <field>] ["[" <index> "]"] [":" format_spec] "}"
 
 The single fields have the following meaning.
@@ -297,6 +299,7 @@ style:
 results in
 
   ::
+
     A=[     1,      2,      3;
             4,      5,      6]
 
