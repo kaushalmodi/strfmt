@@ -277,9 +277,9 @@ A nested format string is a format string in which the *format
 specifier* part of a replacement field contains further replacement
 fields, e.g.
 
-  .. code-block:: nim
+.. code-block:: nim
 
-    "{:{}{}{}x}".fmt(66, ".", "^", 6)
+  "{:{}{}{}x}".fmt(66, ".", "^", 6)
 
 Results in the string *"..42.."*.
 
@@ -294,16 +294,16 @@ The following example demonstrates how *fmt* together with array
 separators can be used to format a nested in array in a Matlab-like
 style:
 
-  .. code-block:: nim
+.. code-block:: nim
 
-    "A=[{:6ga|;\n   |, }]".fmt([[1.0,2.0,3.0], [4.0,5.0,6.0]])
+  "A=[{:6ga|;\n   |, }]".fmt([[1.0,2.0,3.0], [4.0,5.0,6.0]])
 
 results in
 
-  ::
+::
 
-    A=[     1,      2,      3;
-            4,      5,      6]
+  A=[     1,      2,      3;
+          4,      5,      6]
 
 How *fmt* works
 ---------------
@@ -313,23 +313,23 @@ format specifications are parsed and transformed into a *Format*
 structure at compile time so that no overhead remains at runtime.
 For instance, the following expression
 
-  .. code-block:: nim
+.. code-block:: nim
 
-    "This {} the number {:_^3} example".fmt("is", 1)
+  "This {} the number {:_^3} example".fmt("is", 1)
 
 is roughly transformed to
 
-  .. code-block:: nim
+.. code-block:: nim
 
-    (let arg0 = "is";
-     let arg1 = 1;
-     var ret = newString(0);
-     addformat(ret, "This ");
-     addformat(ret, arg0, DefaultFmt);
-     addformat(ret, " the number ");
-     addformat(ret, arg1, Format(...));
-     addformat(ret, " example ");
-     ret)
+  (let arg0 = "is";
+   let arg1 = 1;
+   var ret = newString(0);
+   addformat(ret, "This ");
+   addformat(ret, arg0, DefaultFmt);
+   addformat(ret, " the number ");
+   addformat(ret, arg1, Format(...));
+   addformat(ret, " example ");
+   ret)
 
 (Note that this is a statement-list-expression). The functions
 *addformat* are defined within *strfmt* and add formatted output to
@@ -348,34 +348,34 @@ The *interp* macro interpolates a string with embedded
 expressions. If the string to be interpolated contains a *$*, then
 the following characters are interpreted as expressions.
 
-  .. code-block:: nim
+.. code-block:: nim
 
-    let x = 2
-    let y = 1.0/3.0
-    echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
+  let x = 2
+  let y = 1.0/3.0
+  echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
 
 The macro *interp* supports the following interpolations
 expressions:
 
-  ====================== ===========================================
-  String                 Meaning
-  ---------------------- -------------------------------------------
-  ``$<ident>``           The value of the variable denoted by
-                         ``<ident>`` is substituted into the string
-                         according to the default format for the
-                         respective type.
-  ``${<expr>}``          The expression ``<expr>`` is evaluated and
-                         its result is substituted into the string
-                         according to the default format of its
-                         type.
-  ``${<expr>:<format>}`` The expression ``<expr>`` is evaluated and
-                         its result is substituted into the string
-                         according to the format string
-                         ``<format>``. The format string has the
-                         same structure as for the *format*
-                         function.
-  ``$$``                 A literal ``$``
-  ====================== ===========================================
+====================== ===========================================
+String                 Meaning
+---------------------- -------------------------------------------
+``$<ident>``           The value of the variable denoted by
+                       ``<ident>`` is substituted into the string
+                       according to the default format for the
+                       respective type.
+``${<expr>}``          The expression ``<expr>`` is evaluated and
+                       its result is substituted into the string
+                       according to the default format of its
+                       type.
+``${<expr>:<format>}`` The expression ``<expr>`` is evaluated and
+                       its result is substituted into the string
+                       according to the format string
+                       ``<format>``. The format string has the
+                       same structure as for the *format*
+                       function.
+``$$``                 A literal ``$``
+====================== ===========================================
 
 
 How *interp* works
@@ -384,15 +384,15 @@ The macro *interp* is quite simple. A string with embedded
 expressions is simply transformed to an equivalent expression using
 the *fmt* macro:
 
-  .. code-block:: nim
+.. code-block:: nim
 
-    echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
+  echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
 
 is transformed to
 
-  .. code-block:: nim
+.. code-block:: nim
 
-    echo fmt("Equation: {} + {:.2f} == {}", x, y, x.float + y)
+  echo fmt("Equation: {} + {:.2f} == {}", x, y, x.float + y)
 
 Writing formatted output to a file: *writefmt*
 ----------------------------------------------
