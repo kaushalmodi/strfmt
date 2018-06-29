@@ -162,12 +162,12 @@ The meaning of the various fields is as follows.
     separated by a separator string. If the array is nested then this
     applies recursively.
 
-    The *array_sep* field specifies the separator string for all
-    levels of a nested array. The first character after the *a* is the
-    level separator and works as separator between the string for
-    successive levels. It is never used in the resulting string. All
-    characters between two level separators are the separator between
-    two elements of the respective array level. See `Array
+    The *array_sep* field specifies the separator string for all levels
+    of a nested array. The first character after the *a* is the level
+    separator and works as separator between the string for successive
+    levels. It is never used in the resulting string. All characters
+    between two level separators are the separator between two elements
+    of the respective array level. See `Array
     formatting <#array-formatting>`__ below.
 
 Array formatting

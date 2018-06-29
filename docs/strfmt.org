@@ -1,3 +1,6 @@
+# Do not interpret "b" as subscript in "a_b". Do so only if "a_{b}".
+#+options: ^:{}
+
 # Fri Jun 29 14:12:06 EDT 2018 - kmodi
 # Leave the tables in the RST simple format until we figure out how to
 # make Pandoc export Org tables to RST simple format, or how to make
