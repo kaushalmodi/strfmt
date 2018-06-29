@@ -25,6 +25,11 @@ nimble install https://github.com/kaushalmodi/strfmt
 #+end_example
 * Documentation
 The module is described in the [[http://lyro.bitbucket.io/strfmt][reference documentation]].
+
+To generate the documentation locally, do:
+#+begin_example
+nimble docs
+#+end_example
 * Development
 To run the tests, clone this repo, cd to the repo directory and run:
 #+begin_example
