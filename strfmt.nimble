@@ -13,6 +13,7 @@ import ospaths # for `/`
 let
   pkgName = "strfmt"
   orgFile = "docs" / (pkgName & ".org")
+  pandocLuaFilter = "--lua-filter " & ("docs" / "enumerated-lists.lua")
   rstFile = "docs" / (pkgName & ".rst")
   rstFileAuto = "docs" / (pkgName & "_autogen.rst")
   rstFileOrig = "docs" / (pkgName & "_orig.rst")
@@ -22,9 +23,9 @@ let
 # Cannot use "doc" as a task name as it's one of the inbuilt switches
 # for nimble.
 task docs, "Generate HTML docs using the Org file":
-  exec "pandoc " & orgFile & " -o " & rstFile
+  # https://github.com/jgm/pandoc/issues/4749
+  exec "pandoc " & pandocLuaFilter & " " & orgFile & " -o " & rstFile
   exec "sed -i 's/.. code:: example/::/' " & rstFile # Org example blocks to RST :: blocks
-  exec "sed -i 's/^#\\./1./' " & rstFile # RST ordered lists: #. -> 1.
   exec "nim doc " & pkgName
   mvFile rstFile, rstFileAuto
   mvFile htmlFileNimDoc, htmlFileIndex
