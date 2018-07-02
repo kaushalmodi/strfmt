@@ -98,6 +98,11 @@ type
       index: int ## array index of argument to be accessed
       nested: bool ## true if the argument contains nested formats
 
+# SomeReal gets deprecated in Nim 0.18.1.
+when NimMajor == 0 and (NimMinor <= 17 or (NimMinor == 18 and NimPatch == 0)):
+  type
+    SomeFloat = SomeReal
+
 const
   DefaultPrec = 6 ## Default precision for floating point numbers.
   DefaultFmt*: Format = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil) ## \
