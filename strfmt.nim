@@ -98,8 +98,8 @@ type
       index: int ## array index of argument to be accessed
       nested: bool ## true if the argument contains nested formats
 
-# SomeReal gets deprecated in Nim 0.18.1.
-when NimMajor == 0 and (NimMinor <= 17 or (NimMinor == 18 and NimPatch == 0)):
+# SomeFloat replaced SomeReal in Nim 0.18.1.
+when not declared SomeFloat:
   type
     SomeFloat = SomeReal
 
