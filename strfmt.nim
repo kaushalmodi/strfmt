@@ -110,7 +110,7 @@ proc write*(s: var string; c: char) =
   s.add(c)
 
 proc parse*(fmt: string): Format {.nosideeffect.} =
-  # Converts the format string `fmt` into a `Format` structure.
+  ## Converts the format string `fmt` into a `Format` structure.
   let n = fmt.len
   var pos = 0
 
@@ -119,7 +119,7 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
     result.align = faDefault
   else:
     let rlen = fmt.runeLenAt(pos)
-    if fmt[pos + rlen] in { '<', '>', '^', '=' }:
+    if pos + rlen < fmt.len and fmt[pos + rlen] in { '<', '>', '^', '=' }:
       result.fill = fmt[pos ..< (pos+rlen)]
       case fmt[pos + rlen]
       of '<': result.align = faLeft
