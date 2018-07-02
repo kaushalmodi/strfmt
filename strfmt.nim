@@ -1337,6 +1337,13 @@ when isMainModule:
 
         "{} {}".fmt(125u8, 254u8) == "125 254"
 
+
+    test "fmt of floats with exponentiation -- issue #2":
+      # https://github.com/kaushalmodi/strfmt/issues/2
+      check:
+        "{:f}".fmt(9.223372036854776e+18) == "9.223372036854776e+18"
+      skip
+
     test "proc inside fmt":
       check:
         "{0} {0}".fmt((z.inc; z)) == "1 1"
