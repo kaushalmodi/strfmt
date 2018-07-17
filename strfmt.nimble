@@ -25,7 +25,6 @@ let
 task docs, "Generate HTML docs using the Org file":
   # https://github.com/jgm/pandoc/issues/4749
   exec "pandoc " & pandocLuaFilter & " " & orgFile & " -o " & rstFile
-  exec "sed -i 's/.. code:: example/::/' " & rstFile # Org example blocks to RST :: blocks
   exec "nim doc " & pkgName
   mvFile rstFile, rstFileAuto
   mvFile htmlFileNimDoc, htmlFileIndex

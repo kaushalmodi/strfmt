@@ -35,8 +35,7 @@ The documentation is written in [[https://orgmode.org/][Org mode]].
 To generate this documentation locally, do ~nimble docs~. You will
 find an ~index.html~ generated in the ~docs/~ directory.
 ** ~nimble docs~ Requirements
-- Pandoc
-- GNU/Linux OS (tested to work on RHEL 6.6) - Because of GNU ~sed~
+- Pandoc 2.2.2
 * Development
 To run the tests, clone this repo, cd to the repo directory and run:
 #+begin_example
