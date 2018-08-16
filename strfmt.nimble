@@ -1,6 +1,6 @@
 # Package
 
-version = "0.9.1"
+version = "0.10"
 author = "Frank Fischer"
 description = "A string formatting library inspired by Python's `format`"
 license = "MIT"
