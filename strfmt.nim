@@ -105,7 +105,7 @@ when not declared SomeFloat:
 
 const
   DefaultPrec = 6 ## Default precision for floating point numbers.
-  DefaultFmt*: Format = (ftDefault, -1, -1, nil, faDefault, fsMinus, false, false, false, nil) ## \
+  DefaultFmt*: Format = (ftDefault, -1, -1, "", faDefault, fsMinus, false, false, false, "\t") ## \
     ## Default format corresponding to the empty format string, i.e.
     ##   `x.format("") == x.format(DefaultFmt)`.
   round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005, 0.000000005, 0.0000000005]
@@ -162,7 +162,7 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
 
   # zero padding
   if pos < n and fmt[pos] == '0':
-    if result.fill != nil:
+    if result.fill != "":
       raise newException(FormatError, "Leading 0 in with not allowed with explicit fill character")
     if result.align != faDefault:
       raise newException(FormatError, "Leading 0 in with not allowed with explicit alignment")
@@ -218,7 +218,7 @@ proc parse*(fmt: string): Format {.nosideeffect.} =
     result.arysep = fmt[pos+1 .. fmt.high]
     pos = fmt.len
   else:
-    result.arysep = nil
+    result.arysep = "\t"
 
   # end of format string
   if pos < n:
@@ -269,7 +269,7 @@ proc writefill(o: var Writer; fmt: Format; n: int; signum: int = 0) =
     elif fmt.sign == fsPlus: write(o, '+')
     elif fmt.sign == fsSpace: write(o, ' ')
 
-  if fmt.fill == nil:
+  if fmt.fill == "":
     for i in 1 .. n: write(o, ' ')
   else:
     for i in 1 .. n:
@@ -553,7 +553,7 @@ proc writeformat*(o: var Writer; ary: openarray[any]; fmt: Format) =
 
   var sep: string
   var nxtfmt = fmt
-  if fmt.arysep == nil:
+  if fmt.arysep == "\t":
     sep = "\t"
   elif fmt.arysep.len == 0:
     sep = ""
@@ -684,7 +684,7 @@ proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
       else:
         lvl.dec
     let clpos = pos
-    var fmtpart = Part(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), field: nil, index: int.high, nested: nested)
+    var fmtpart = Part(kind: pkFmt, arg: -1, fmt: s.substr(oppos+1, clpos-1), field: "", index: int.high, nested: nested)
     if fmtpart.fmt.len > 0:
       var pos = 0
       let n = fmtpart.fmt.len
@@ -725,7 +725,7 @@ proc splitfmt(s: string): seq[Part] {.compiletime, nosideeffect.} =
 proc literal(s: string): NimNode {.compiletime, nosideeffect.} =
   ## Return the nim literal of string `s`. This handles the case if
   ## `s` is nil.
-  result = if s == nil: newNilLit() else: newLit(s)
+  result = newLit(s)
 
 proc literal(b: bool): NimNode {.compiletime, nosideeffect.} =
   ## Return the nim literal of boolean `b`. This is either `true`
@@ -788,7 +788,7 @@ proc generatefmt(fmtstr: string;
           args[arg].cnt = args[arg].cnt + 1
           arg.inc
         # possible field access
-        if part.field != nil and part.field.len > 0:
+        if part.field != "":
           argexpr = newDotExpr(argexpr, part.field.ident)
         # possible array access
         if part.index < int.high:
