@@ -57,35 +57,20 @@ The meaning of the various fields is as follows.
 
 - *align* :: Special character to specify alignment.
 
-  #+begin_export rst
-  ====== =========
-  Option Meaning
-  ------ ---------
-  ``<``  Left alignment, additional characters are added to the
-         right (default for string).
-  ``>``  Right alignment, additional characters are added to the left.
-  ``^``  Centered , the same amount of characters is added to the
-         left and the right.
-  ``=``  Padding. If a numeric value is printed with a sign, then
-         additional characters are added after the sign. Otherwise
-         it behaves like "``>``". This option is only available for
-         numbers (default for numbers).
-  ====== =========
-
-  #+end_export
+  | Option | Meaning                                                                                                                                                                                                    |
+  |--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+  | =<=    | Left alignment, additional characters are added to the right (default for string).                                                                                                                         |
+  | =>=    | Right alignment, additional characters are added to the left.                                                                                                                                              |
+  | =^=     | Centered , the same amount of characters is added to the left and the right.                                                                                                                               |
+  | ===    | Padding. If a numeric value is printed with a sign, then additional characters are added after the sign. Otherwise it behaves like "=>=". This option is only available for numbers (default for numbers). |
 
 - *sign* :: The sign character is only used for numeric values.
 
-  #+begin_export rst
-  =======  =========
-  Option   Meaning
-  -------  ---------
-  ``+``    All numbers (including positive ones) are preceded by a sign.
-  ``-``    Only negative numbers are preceded by a sign.
-  *SPACE*  Negative numbers are preceded by a sign, positive numbers are preceded by a space.
-  =======  =========
-
-  #+end_export
+  | Option  | Meaning                                                                            |
+  |---------+------------------------------------------------------------------------------------|
+  | =+=     | All numbers (including positive ones) are preceded by a sign.                      |
+  | =-=     | Only negative numbers are preceded by a sign.                                      |
+  | /SPACE/ | Negative numbers are preceded by a sign, positive numbers are preceded by a space. |
 
 - *#* :: If this character is present then the integer values in the
   formats =b=, =o=, =x= and =X= are preceded by /0b/, /0o/ or /0x/,
@@ -100,17 +85,11 @@ The meaning of the various fields is as follows.
 - *precision* :: The meaning of the precision field depends on the
   formatting type.
 
-  #+begin_export rst
-  ============================= =========
-  Type                          Meaning
-  ----------------------------- ---------
-  ``s``                         The maximal number of characters written.
-  ``f``, ``F``, ``e`` and ``E`` The number of digits after the decimal point.
-  ``g``, ``G``                  The number of significant digits written (i.e. the
-                                number of overall digits).
-  ============================= ==========
-
-  #+end_export
+  | Type                    | Meaning                                                                         |
+  |-------------------------+---------------------------------------------------------------------------------|
+  | =s=                     | The maximal number of characters written.                                       |
+  | =f=, =F=, =e= and =E=   | The number of digits after the decimal point.                                   |
+  | =g=, =G=                | The number of significant digits written (i.e. the number of overall digits).   |
 
   Note that in all cases the decimal point is printed if and only if
   there is at least one digit following the point.
@@ -120,62 +99,34 @@ The meaning of the various fields is as follows.
 - *type* :: The formatting type. The valid types depend on the type of
   the value to be printed. For strings the following types are valid.
 
-  #+begin_export rst
-  ===== =================================================
-  Type  Meaning
-  ----- -------------------------------------------------
-  ``s`` A string. This is the default format for strings.
-  ===== =================================================
-
-  #+end_export
+  | Type   | Meaning                                             |
+  |--------+-----------------------------------------------------|
+  | =s=    | A string. This is the default format for strings.   |
 
   The following types are valid for integers.
 
-  #+begin_export rst
-  ===== ===========================================================
-  Type  Meaning
-  ----- -----------------------------------------------------------
-  ``d`` A decimal integer number. This is the default for integers.
-  ``b`` A binary integer (base 2).
-  ``o`` An octal integer (base 8).
-  ``x`` A hexadecimal integer (base 16), all letters are lower case.
-  ``X`` A hexadecimal integer (base 16), all letters are upper case.
-  ``n`` The same as ``d``.
-  ===== ===========================================================
-
-  #+end_export
+  | Type   | Meaning                                                        |
+  |--------+----------------------------------------------------------------|
+  | =d=    | A decimal integer number. This is the default for integers.    |
+  | =b=    | A binary integer (base 2).                                     |
+  | =o=    | An octal integer (base 8).                                     |
+  | =x=    | A hexadecimal integer (base 16), all letters are lower case.   |
+  | =X=    | A hexadecimal integer (base 16), all letters are upper case.   |
+  | =n=    | The same as =d=.                                               |
 
   The following types are valid for real numbers.
 
-  #+begin_export rst
-  ===== ===========================================================
-  Type  Meaning
-  ----- -----------------------------------------------------------
-  ``f`` Fixed point format.
-  ``F`` The same as f.
-  ``e`` Scientific format, exactly one digit before the decimal
-        point. The exponent is written with a lower case 'e'. The
-        exponent always has a sign as at least two digits.
-  ``E`` The same as ``e`` but with an upper case 'E'.
-  ``g`` General format. The number is written either in fixed point
-        format or in scientific format depending on the precision
-        and the exponent in scientific format.
-
-        The exact rule is as follows. Suppose *exp* is the exponent
-        in scientific format and *p* the desired precision. If *-4
-        <= exp <= p-1* then the number is formatted in fixed point
-        format ``f`` with precision *p-1-exp*. Otherwise the number
-        if formatted in scientific format ``e`` with precision
-        *p-1*. Trailing zeros are removed in all cases and the
-        decimal point is removed as well if there are no remaining
-        digits following it.
-  ``G`` The same as ``g`` but works like ``E`` if scientific format
-        is used.
-  ``%`` The number if multiplied by 100, formatted in fixed point
-        format ``f`` and followed by a percent sign.
-  ===== ===========================================================
-
-  #+end_export
+  | Type   | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+  |--------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+  | =f=    | Fixed point format.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+  | =F=    | The same as f.                                                                                                                                                                                                                                                                                                                                                                                                                            |
+  | =e=    | Scientific format, exactly one digit before the decimal point. The exponent is written with a lower case 'e'. The exponent always has a sign as at least two digits.                                                                                                                                                                                                                                                                      |
+  | =E=    | The same as =e= but with an upper case 'E'.                                                                                                                                                                                                                                                                                                                                                                                               |
+  | =g=    | General format. The number is written either in fixed point format or in scientific format depending on the precision and the exponent in scientific format.                                                                                                                                                                                                                                                                              |
+  |        |                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+  |        | The exact rule is as follows. Suppose /exp/ is the exponent in scientific format and /p/ the desired precision. If /-4 <= exp <= p-1/ then the number is formatted in fixed point format =f= with precision /p-1-exp/. Otherwise the number if formatted in scientific format =e= with precision /p-1/. Trailing zeros are removed in all cases and the decimal point is removed as well if there are no remaining digits following it.   |
+  | =G=    | The same as =g= but works like =E= if scientific format is used.                                                                                                                                                                                                                                                                                                                                                                          |
+  | =%=    | The number if multiplied by 100, formatted in fixed point format =f= and followed by a percent sign.                                                                                                                                                                                                                                                                                                                                      |
 
 - *array_sep* :: If an array is formatted, the format specifications
   above apply to each element of the array. The elements are printed in
@@ -369,28 +320,12 @@ echo interp"Equation: $x + ${y:.2f} == ${x.float + y}"
 
 The macro /interp/ supports the following interpolations expressions:
 
-#+begin_export rst
-====================== ===========================================
-String                 Meaning
----------------------- -------------------------------------------
-``$<ident>``           The value of the variable denoted by
-                       ``<ident>`` is substituted into the string
-                       according to the default format for the
-                       respective type.
-``${<expr>}``          The expression ``<expr>`` is evaluated and
-                       its result is substituted into the string
-                       according to the default format of its
-                       type.
-``${<expr>:<format>}`` The expression ``<expr>`` is evaluated and
-                       its result is substituted into the string
-                       according to the format string
-                       ``<format>``. The format string has the
-                       same structure as for the *format*
-                       function.
-``$$``                 A literal ``$``
-====================== ===========================================
-
-#+end_export
+| String               | Meaning                                                                                                                                                                                            |
+|----------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| =$<ident>=            | The value of the variable denoted by =<ident>= is substituted into the string according to the default format for the respective type.                                                              |
+| =${<expr>}=          | The expression =<expr>= is evaluated and its result is substituted into the string according to the default format of its type.                                                                     |
+| =${<expr>:<format>}= | The expression =<expr>= is evaluated and its result is substituted into the string according to the format string =<format>=. The format string has the same structure as for the /format/ function. |
+| =$$=                 | A literal =$=                                                                                                                                                                                      |
 
 * How /interp/ works
 
