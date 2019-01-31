@@ -108,7 +108,7 @@ const
   DefaultFmt*: Format = (ftDefault, -1, -1, "", faDefault, fsMinus, false, false, false, "\t") ## \
     ## Default format corresponding to the empty format string, i.e.
     ##   `x.format("") == x.format(DefaultFmt)`.
-  round_nums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005, 0.000000005, 0.0000000005]
+  roundNums = [0.5, 0.05, 0.005, 0.0005, 0.00005, 0.000005, 0.0000005, 0.00000005, 0.000000005, 0.0000000005]
     ## Rounding offset for floating point numbers up to precision 10.
 
 proc write*(s: var string; c: char) =
@@ -465,7 +465,7 @@ proc writeformat*(o: var Writer; x: SomeFloat; fmt: Format) =
       len += 1 # percent sign
 
     # handle rounding by adding +0.5 * LSB
-    if prec < len(round_nums): y += round_nums[prec]
+    if prec < len(roundNums): y += roundNums[prec]
 
     # split into integer and fractional part
     var mult = 1'i64
