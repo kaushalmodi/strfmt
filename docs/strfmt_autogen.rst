@@ -1,11 +1,11 @@
 The most important functions and macros provided are:
 
-1. the *format* functions to render a single value as a string,
-2. the *fmt* macro to construct a string containing several formatted
+#. the *format* functions to render a single value as a string,
+#. the *fmt* macro to construct a string containing several formatted
    values
-3. the *writefmt* and *printfmt* family of macros to write a formatted
+#. the *writefmt* and *printfmt* family of macros to write a formatted
    string to a file and *stdout*, respectively
-4. the *interp* and *$$* string **interpolation** macros to render
+#. the *interp* and *$$* string **interpolation** macros to render
    expressions embedded in the string itself
 
 These functions are described in the following sections.

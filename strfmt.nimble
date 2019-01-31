@@ -13,7 +13,6 @@ import ospaths # for `/`
 let
   pkgName = "strfmt"
   orgFile = "docs" / (pkgName & ".org")
-  pandocLuaFilter = "--lua-filter " & ("docs" / "enumerated-lists.lua")
   rstFile = "docs" / (pkgName & ".rst")
   rstFileAuto = "docs" / (pkgName & "_autogen.rst")
   rstFileOrig = "docs" / (pkgName & "_orig.rst")
@@ -24,7 +23,7 @@ let
 # for nimble.
 task docs, "Generate HTML docs using the Org file":
   # https://github.com/jgm/pandoc/issues/4749
-  exec "pandoc " & pandocLuaFilter & " " & orgFile & " -o " & rstFile
+  exec "pandoc " & orgFile & " -o " & rstFile
   exec "nim doc " & pkgName
   mvFile rstFile, rstFileAuto
   mvFile htmlFileNimDoc, htmlFileIndex
