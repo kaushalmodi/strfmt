@@ -1322,14 +1322,6 @@ when isMainModule:
 
 
   suite "fmt syntax":
-    setup:
-      let
-        x = 32
-        y = 8
-      var
-        z = 0
-        s = ""
-
     test "fmt":
       check:
         ("number: {} with width: {:5.2f} string: {:.^9} array: {:a:, } end".fmt(42, 1.45, "hello", [1,2,3]) ==
@@ -1357,10 +1349,17 @@ when isMainModule:
       skip
 
     test "proc inside fmt":
+      var
+        z = 0
+
       check:
         "{0} {0}".fmt((z.inc; z)) == "1 1"
 
     test "$$":
+      let
+        x = 32
+        y = 8
+
       check:
         $$"interpolate ${32} == ${4.2}" == "interpolate 32 == 4.2"
         $$"${x} + ${y} == ${x + y}" == "32 + 8 == 40"
@@ -1372,5 +1371,8 @@ when isMainModule:
         # ($$"formatted: ${if true: \"a\" else: \"b\"}" == "formatted: a")
 
     test "addfmt":
+      var
+        s = ""
+
       check:
         (s.addfmt("a:{}", 42); s) == "a:42"
