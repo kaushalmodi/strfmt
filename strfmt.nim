@@ -1121,11 +1121,6 @@ when isMainModule:
 
 
   suite "Floats":
-    setup:
-      const
-        zero = 0.0
-        negZero = zero * -1
-
     test "positive infinity -- format string length = 0":
       check:
         Inf.format("") == "inf"
@@ -1192,62 +1187,6 @@ when isMainModule:
         NegInf.format("0=-8") == "-0000inf"
         NegInf.format("-08") == "-0000inf"
 
-    test "positive 0.0":
-      check:
-        0.0.format(".<8") == "0......."
-        0.0.format(".>8") == ".......0"
-        0.0.format(".^8") == "...0...."
-        0.0.format(".=8") == ".......0"
-        0.0.format(".< 8") == " 0......"
-        0.0.format(".> 8") == "...... 0"
-        0.0.format(".^ 8") == "... 0..."
-        0.0.format(".= 8") == " ......0"
-        0.0.format(".<+8") == "+0......"
-        0.0.format(".>+8") == "......+0"
-        0.0.format(".^+8") == "...+0..."
-        0.0.format(".=+8") == "+......0"
-        0.0.format(".<-8") == "0......."
-        0.0.format("0>-8") == "00000000"
-        0.0.format(".^-8") == "...0...."
-        0.0.format("0=-8") == "00000000"
-        0.0.format("-08") == "00000000"
-        zero.format("5.2e") == "0.00e+00"
-
-    test "negative 0.0 -- format string length = 0":
-      check:
-        negZero.format("") == "-0"
-
-    test "negative 0.0 -- format string length = 1":
-      check:
-        negZero.format("8") == "      -0"
-
-    test "negative 0.0 -- format string length >= 2":
-      check:
-        negZero.format("<8") == "-0      "
-        negZero.format(">8") == "      -0"
-        negZero.format("^8") == "   -0   "
-        negZero.format("=8") == "-      0"
-
-        negZero.format(".<8") == "-0......"
-        negZero.format(".>8") == "......-0"
-        negZero.format(".^8") == "...-0..."
-        negZero.format(".=8") == "-......0"
-        negZero.format(".< 8") == "-0......"
-        negZero.format(".> 8") == "......-0"
-        negZero.format(".^ 8") == "...-0..."
-        negZero.format(".= 8") == "-......0"
-        negZero.format(".<+8") == "-0......"
-        negZero.format(".>+8") == "......-0"
-        negZero.format(".^+8") == "...-0..."
-        negZero.format(".=+8") == "-......0"
-        negZero.format(".<-8") == "-0......"
-        negZero.format("0>-8") == "000000-0"
-        negZero.format(".^-8") == "...-0..."
-        negZero.format("0=-8") == "-0000000"
-        negZero.format("-08") == "-0000000"
-
-        negZero.format("5.2e") == "-0.00e+00"
-
     test "more floats -- format string length = 0":
       check:
         123.456.format() == "123.456"
@@ -1290,6 +1229,74 @@ when isMainModule:
         (-0.0000123456).format("0=10.3") == "-01.23e-05"
         0.3.format(".2%") == "30.00%"
         0.5.format("0.2f") == "0.50"
+
+
+  suite "Zero Floats":
+    setup:
+      const
+        zero = 0.0
+
+    test "positive 0.0":
+      check:
+        0.0.format(".<8") == "0......."
+        0.0.format(".>8") == ".......0"
+        0.0.format(".^8") == "...0...."
+        0.0.format(".=8") == ".......0"
+        0.0.format(".< 8") == " 0......"
+        0.0.format(".> 8") == "...... 0"
+        0.0.format(".^ 8") == "... 0..."
+        0.0.format(".= 8") == " ......0"
+        0.0.format(".<+8") == "+0......"
+        0.0.format(".>+8") == "......+0"
+        0.0.format(".^+8") == "...+0..."
+        0.0.format(".=+8") == "+......0"
+        0.0.format(".<-8") == "0......."
+        0.0.format("0>-8") == "00000000"
+        0.0.format(".^-8") == "...0...."
+        0.0.format("0=-8") == "00000000"
+        0.0.format("-08") == "00000000"
+        zero.format("5.2e") == "0.00e+00"
+
+  suite "Negative Zero Floats":
+    setup:
+      const
+        zero = 0.0
+        negZero = zero * -1
+
+    test "negative 0.0 -- format string length = 0":
+      check:
+        negZero.format("") == "-0"
+
+    test "negative 0.0 -- format string length = 1":
+      check:
+        negZero.format("8") == "      -0"
+
+    test "negative 0.0 -- format string length >= 2":
+      check:
+        negZero.format("<8") == "-0      "
+        negZero.format(">8") == "      -0"
+        negZero.format("^8") == "   -0   "
+        negZero.format("=8") == "-      0"
+
+        negZero.format(".<8") == "-0......"
+        negZero.format(".>8") == "......-0"
+        negZero.format(".^8") == "...-0..."
+        negZero.format(".=8") == "-......0"
+        negZero.format(".< 8") == "-0......"
+        negZero.format(".> 8") == "......-0"
+        negZero.format(".^ 8") == "...-0..."
+        negZero.format(".= 8") == "-......0"
+        negZero.format(".<+8") == "-0......"
+        negZero.format(".>+8") == "......-0"
+        negZero.format(".^+8") == "...-0..."
+        negZero.format(".=+8") == "-......0"
+        negZero.format(".<-8") == "-0......"
+        negZero.format("0>-8") == "000000-0"
+        negZero.format(".^-8") == "...-0..."
+        negZero.format("0=-8") == "-0000000"
+        negZero.format("-08") == "-0000000"
+
+        negZero.format("5.2e") == "-0.00e+00"
 
 
   suite "Booleans":
