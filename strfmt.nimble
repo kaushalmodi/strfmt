@@ -7,7 +7,7 @@ license = "MIT"
 
 # Dependencies
 
-requires "nim >= 0.18.0"
+requires "nim >= 0.19.0"
 
 import ospaths # for `/`
 let
